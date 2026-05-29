@@ -9,5 +9,4 @@ import GarageBook.GarageBook.Models.Garage;
 
 @Repository
 public interface GarageRepository extends JpaRepository<Garage, Long> {
-    Optional<Garage> findByUserName(String userName);
 }
