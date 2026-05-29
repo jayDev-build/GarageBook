@@ -1,6 +1,7 @@
 package GarageBook.GarageBook.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,6 @@ public interface MechanicRepository extends JpaRepository<Mechanic, Long> {
 
     Optional<Mechanic> findByAdhaarNumber(String adhaarNumber);
 
-    Optional<Mechanic> findByGarage(Garage garage);
+    List<Mechanic> findByGarage(Garage garage);
 
 }
