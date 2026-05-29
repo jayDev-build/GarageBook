@@ -44,7 +44,7 @@ public class ServiceBooking {
 
     private Long totalAmount;
 
-    @OneToOne()
+    @ManyToOne
     @JoinColumn(name = "garage_id")
     private Garage garage;
 

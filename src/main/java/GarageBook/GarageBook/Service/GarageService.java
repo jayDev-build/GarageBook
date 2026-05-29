@@ -7,6 +7,7 @@ import GarageBook.GarageBook.Dto.Request.GarageRequestDto;
 import GarageBook.GarageBook.Dto.Response.GarageResponseDto;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Repository.GarageRepository;
+import GarageBook.GarageBook.Repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
@@ -16,9 +17,11 @@ import GarageBook.GarageBook.Models.User;
 @Service
 public class GarageService {
     private final GarageRepository garageRepository;
+    private final UserRepository userRepository;
 
-    public GarageService(GarageRepository garageRepository) {
+    public GarageService(GarageRepository garageRepository, UserRepository userRepository) {
         this.garageRepository = garageRepository;
+        this.userRepository = userRepository;
     }
 
     private Garage getAuthenticatedUserGarage() {
@@ -35,6 +38,12 @@ public class GarageService {
     }
 
     public GarageResponseDto createGarage(GarageRequestDto request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        }
+        User currentUser = (User) authentication.getPrincipal();
+
         Garage garage = Garage.builder()
                 .name(request.getName())
                 .address(request.getAddress())
@@ -44,6 +53,10 @@ public class GarageService {
                 .build();
 
         Garage saved = garageRepository.save(garage);
+
+        currentUser.setGarage(saved);
+        userRepository.save(currentUser);
+
         return mapToResponse(saved);
     }
 

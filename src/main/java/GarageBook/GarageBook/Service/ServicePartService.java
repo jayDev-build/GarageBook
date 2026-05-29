@@ -107,14 +107,23 @@ public class ServicePartService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service part: " + id);
         }
 
-        Part part = partRepository.findById(request.getPartId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + request.getPartId()));
+        Part part = servicePart.getPart();
+        if (request.getPartId() != null) {
+            part = partRepository.findById(request.getPartId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + request.getPartId()));
+        }
 
-        long calculatedTotalPrice = (long) request.getQuantity() * request.getPricePerUnit();
+        if (request.getQuantity() != null) {
+            servicePart.setQuantity(request.getQuantity());
+        }
+
+        if (request.getPricePerUnit() != null) {
+            servicePart.setPricePerUnit(request.getPricePerUnit());
+        }
+
+        long calculatedTotalPrice = (long) servicePart.getQuantity() * servicePart.getPricePerUnit();
 
         servicePart.setPart(part);
-        servicePart.setQuantity(request.getQuantity());
-        servicePart.setPricePerUnit(request.getPricePerUnit());
         servicePart.setTotalPrice(calculatedTotalPrice);
 
         ServicePart updated = servicePartRepository.save(servicePart);

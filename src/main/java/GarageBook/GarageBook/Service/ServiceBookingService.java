@@ -93,14 +93,28 @@ public class ServiceBookingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
         }
 
-        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle not found with id: " + request.getVehicleId()));
+        if (request.getVehicleId() != null) {
+            Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle not found with id: " + request.getVehicleId()));
+            booking.setVehicle(vehicle);
+        }
 
-        booking.setVehicle(vehicle);
-        booking.setServiceType(request.getServiceType());
-        booking.setBookingTime(request.getBookingTime());
-        booking.setBookingStatus(request.getBookingStatus());
-        booking.setTotalAmount(request.getTotalAmount());
+        if (request.getServiceType() != null) {
+            booking.setServiceType(request.getServiceType());
+        }
+
+        if (request.getBookingTime() != null) {
+            booking.setBookingTime(request.getBookingTime());
+        }
+
+        if (request.getBookingStatus() != null) {
+            booking.setBookingStatus(request.getBookingStatus());
+        }
+
+        if (request.getTotalAmount() != null) {
+            booking.setTotalAmount(request.getTotalAmount());
+        }
+
         booking.setGarage(garage);
 
         ServiceBooking updated = serviceBookingRepository.save(booking);

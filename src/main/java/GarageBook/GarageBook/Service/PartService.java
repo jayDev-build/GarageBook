@@ -24,7 +24,7 @@ public class PartService {
                 .partSize(request.getPartSize())
                 .partNumber(request.getPartNumber())
                 .stockQuantity(request.getStockQuantity())
-                .defaultPrice(request.getDefaultPrice())
+                .defaultPrice(request.getDefaultPrice())   
                 .build();
 
         Part saved = partRepository.save(part);
