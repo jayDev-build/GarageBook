@@ -31,12 +31,6 @@ public class Garage {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "garage_sequence")
     @SequenceGenerator(name = "garage_sequence", sequenceName = "garage_sequence", allocationSize = 1)
     private Long garageId;
-
-    @Column(unique = true)
-    private String userName;
-
-    private String password;
-
     private String name;
     private String address;
     private String phoneNumber;
