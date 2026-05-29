@@ -44,16 +44,20 @@ public class ServiceBooking {
 
     private Long totalAmount;
 
+    @OneToOne()
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
+
     @OneToMany(mappedBy = "serviceBooking", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<ServiceParts> serviceParts = new ArrayList<>();
+    private List<ServicePart> serviceParts = new ArrayList<>();
 
-    public void addServicePart(ServiceParts serviceParts) {
+    public void addServicePart(ServicePart serviceParts) {
         this.serviceParts.add(serviceParts);
         serviceParts.setServiceBooking(this);
     }
 
-    public void removeServicePart(ServiceParts serviceParts) {
+    public void removeServicePart(ServicePart serviceParts) {
         this.serviceParts.remove(serviceParts);
         serviceParts.setServiceBooking(null);
     }
