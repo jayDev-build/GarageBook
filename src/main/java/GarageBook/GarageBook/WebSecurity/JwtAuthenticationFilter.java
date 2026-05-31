@@ -13,6 +13,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import jakarta.servlet.http.Cookie;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import java.io.IOException;
 
@@ -37,15 +40,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+             
         final String authHeader = request.getHeader("Authorization");
+        String jwtToken = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwtToken = authHeader.substring(7);
+        } else if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("jwt".equals(cookie.getName())) {
+                    try {
+                        String cookieValue = URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8);
+                        if (cookieValue.startsWith("Bearer ")) {
+                            jwtToken = cookieValue.substring(7);
+                        } else {
+                            jwtToken = cookieValue;
+                        }
+                    } catch (Exception e) {
+                        // Keep jwtToken as null
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (jwtToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String jwt = authHeader.substring(7);
+            final String jwt = jwtToken;
             final String username = jwtService.extractUsername(jwt);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

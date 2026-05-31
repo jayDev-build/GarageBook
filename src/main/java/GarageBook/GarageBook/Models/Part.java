@@ -32,4 +32,8 @@ public class Part {
     private Integer stockQuantity;
 
     private Long defaultPrice;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 }

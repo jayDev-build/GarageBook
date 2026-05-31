@@ -7,7 +7,7 @@ import GarageBook.GarageBook.Dto.Request.ServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServiceBookingResponseDto;
 import GarageBook.GarageBook.Service.ServiceBookingService;
 
-@RequestMapping("/api/bookings")
+@RequestMapping("/service-bookings")
 @RestController
 public class ServiceBookingController {
     private final ServiceBookingService serviceBookingService;
@@ -35,7 +35,8 @@ public class ServiceBookingController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServiceBookingResponseDto> updateBooking(@PathVariable Long id, @RequestBody ServiceBookingRequestDto request) {
+    public ResponseEntity<ServiceBookingResponseDto> updateBooking(@PathVariable Long id,
+            @RequestBody ServiceBookingRequestDto request) {
         ServiceBookingResponseDto response = serviceBookingService.updateBooking(id, request);
         return ResponseEntity.ok(response);
     }
