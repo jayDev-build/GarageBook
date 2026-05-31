@@ -58,6 +58,14 @@ public class ServicePartService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + request.getServiceBookingId());
         }
 
+        if (part.getStockQuantity() < request.getQuantity()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock. Only " + part.getStockQuantity() + " items remaining.");
+        }
+
+        // Deduct from catalog inventory stock
+        part.setStockQuantity(part.getStockQuantity() - request.getQuantity());
+        partRepository.save(part);
+
         long calculatedTotalPrice = (long) request.getQuantity() * request.getPricePerUnit();
 
         ServicePart servicePart = ServicePart.builder()
@@ -108,12 +116,41 @@ public class ServicePartService {
         }
 
         Part part = servicePart.getPart();
-        if (request.getPartId() != null) {
-            part = partRepository.findById(request.getPartId())
+        
+        // If the part is being switched to a different part
+        if (request.getPartId() != null && !request.getPartId().equals(part.getPartId())) {
+            Part newPart = partRepository.findById(request.getPartId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + request.getPartId()));
-        }
 
-        if (request.getQuantity() != null) {
+            int targetQty = request.getQuantity() != null ? request.getQuantity() : servicePart.getQuantity();
+
+            // 1. Check stock of new part
+            if (newPart.getStockQuantity() < targetQty) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock on new part. Only " + newPart.getStockQuantity() + " items remaining.");
+            }
+
+            // 2. Restock old part
+            part.setStockQuantity(part.getStockQuantity() + servicePart.getQuantity());
+            partRepository.save(part);
+
+            // 3. Deduct from new part
+            newPart.setStockQuantity(newPart.getStockQuantity() - targetQty);
+            partRepository.save(newPart);
+
+            part = newPart;
+            if (request.getQuantity() != null) {
+                servicePart.setQuantity(request.getQuantity());
+            }
+        } 
+        // If the part stays the same but the quantity is changed
+        else if (request.getQuantity() != null && !request.getQuantity().equals(servicePart.getQuantity())) {
+            int diff = request.getQuantity() - servicePart.getQuantity();
+            if (part.getStockQuantity() < diff) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock. Only " + part.getStockQuantity() + " items remaining.");
+            }
+            part.setStockQuantity(part.getStockQuantity() - diff);
+            partRepository.save(part);
+
             servicePart.setQuantity(request.getQuantity());
         }
 
@@ -143,6 +180,13 @@ public class ServicePartService {
         if (servicePart.getServiceBooking() == null || servicePart.getServiceBooking().getGarage() == null 
                 || !servicePart.getServiceBooking().getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service part: " + id);
+        }
+
+        // Restock catalog inventory stock
+        Part part = servicePart.getPart();
+        if (part != null) {
+            part.setStockQuantity(part.getStockQuantity() + servicePart.getQuantity());
+            partRepository.save(part);
         }
 
         ServiceBooking booking = servicePart.getServiceBooking();
