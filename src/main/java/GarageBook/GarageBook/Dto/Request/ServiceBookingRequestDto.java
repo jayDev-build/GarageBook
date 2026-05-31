@@ -20,5 +20,7 @@ public class ServiceBookingRequestDto {
     private LocalDateTime bookingTime;
     private BookingStatus bookingStatus;
     private Long totalAmount;
+    private Long labourCharges;
     private Long garageId;
+    private java.util.List<ServicePartRequestDto> serviceParts;
 }

@@ -24,14 +24,17 @@ public class ServiceBookingService {
     private final ServiceBookingRepository serviceBookingRepository;
     private final VehicleRepository vehicleRepository;
     private final GarageRepository garageRepository;
+    private final GarageBook.GarageBook.Repository.PartRepository partRepository;
 
     public ServiceBookingService(
             ServiceBookingRepository serviceBookingRepository,
             VehicleRepository vehicleRepository,
-            GarageRepository garageRepository) {
+            GarageRepository garageRepository,
+            GarageBook.GarageBook.Repository.PartRepository partRepository) {
         this.serviceBookingRepository = serviceBookingRepository;
         this.vehicleRepository = vehicleRepository;
         this.garageRepository = garageRepository;
+        this.partRepository = partRepository;
     }
 
     private Garage getAuthenticatedUserGarage() {
@@ -50,7 +53,8 @@ public class ServiceBookingService {
     public ServiceBookingResponseDto createBooking(ServiceBookingRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle not found with id: " + request.getVehicleId()));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Vehicle not found with id: " + request.getVehicleId()));
 
         ServiceBooking booking = ServiceBooking.builder()
                 .vehicle(vehicle)
@@ -58,6 +62,7 @@ public class ServiceBookingService {
                 .bookingTime(request.getBookingTime())
                 .bookingStatus(request.getBookingStatus())
                 .totalAmount(request.getTotalAmount())
+                .labourCharges(request.getLabourCharges())
                 .garage(garage)
                 .build();
 
@@ -75,7 +80,8 @@ public class ServiceBookingService {
     public ServiceBookingResponseDto getBookingById(Long id) {
         Garage garage = getAuthenticatedUserGarage();
         ServiceBooking booking = serviceBookingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service booking not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Service booking not found with id: " + id));
 
         if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
@@ -87,7 +93,8 @@ public class ServiceBookingService {
     public ServiceBookingResponseDto updateBooking(Long id, ServiceBookingRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         ServiceBooking booking = serviceBookingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service booking not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Service booking not found with id: " + id));
 
         if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
@@ -95,7 +102,8 @@ public class ServiceBookingService {
 
         if (request.getVehicleId() != null) {
             Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle not found with id: " + request.getVehicleId()));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Vehicle not found with id: " + request.getVehicleId()));
             booking.setVehicle(vehicle);
         }
 
@@ -115,6 +123,27 @@ public class ServiceBookingService {
             booking.setTotalAmount(request.getTotalAmount());
         }
 
+        if (request.getLabourCharges() != null) {
+            booking.setLabourCharges(request.getLabourCharges());
+        }
+
+        if (request.getServiceParts() != null) {
+            booking.getServiceParts().clear();
+            for (GarageBook.GarageBook.Dto.Request.ServicePartRequestDto partReq : request.getServiceParts()) {
+                GarageBook.GarageBook.Models.Part part = partRepository.findById(partReq.getPartId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + partReq.getPartId()));
+
+                GarageBook.GarageBook.Models.ServicePart servicePart = GarageBook.GarageBook.Models.ServicePart.builder()
+                        .part(part)
+                        .serviceBooking(booking)
+                        .quantity(partReq.getQuantity())
+                        .pricePerUnit(partReq.getPricePerUnit())
+                        .totalPrice(partReq.getPricePerUnit() * partReq.getQuantity())
+                        .build();
+                booking.addServicePart(servicePart);
+            }
+        }
+
         booking.setGarage(garage);
 
         ServiceBooking updated = serviceBookingRepository.save(booking);
@@ -124,7 +153,8 @@ public class ServiceBookingService {
     public void deleteBooking(Long id) {
         Garage garage = getAuthenticatedUserGarage();
         ServiceBooking booking = serviceBookingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service booking not found with id: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Service booking not found with id: " + id));
 
         if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
@@ -134,7 +164,7 @@ public class ServiceBookingService {
     }
 
     private ServiceBookingResponseDto mapToResponse(ServiceBooking booking) {
-        List<ServicePartResponseDto> partsList = booking.getServiceParts() != null 
+        List<ServicePartResponseDto> partsList = booking.getServiceParts() != null
                 ? booking.getServiceParts().stream()
                         .map(this::mapToServicePartResponse)
                         .collect(Collectors.toList())
@@ -148,6 +178,7 @@ public class ServiceBookingService {
                 .bookingTime(booking.getBookingTime())
                 .bookingStatus(booking.getBookingStatus())
                 .totalAmount(booking.getTotalAmount())
+                .labourCharges(booking.getLabourCharges())
                 .garageId(booking.getGarage() != null ? booking.getGarage().getGarageId() : null)
                 .garageName(booking.getGarage() != null ? booking.getGarage().getName() : null)
                 .serviceParts(partsList)
@@ -159,7 +190,8 @@ public class ServiceBookingService {
                 .id(servicePart.getId())
                 .partId(servicePart.getPart() != null ? servicePart.getPart().getPartId() : null)
                 .partName(servicePart.getPart() != null ? servicePart.getPart().getPartName() : null)
-                .serviceBookingId(servicePart.getServiceBooking() != null ? servicePart.getServiceBooking().getId() : null)
+                .serviceBookingId(
+                        servicePart.getServiceBooking() != null ? servicePart.getServiceBooking().getId() : null)
                 .quantity(servicePart.getQuantity())
                 .pricePerUnit(servicePart.getPricePerUnit())
                 .totalPrice(servicePart.getTotalPrice())

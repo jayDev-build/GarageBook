@@ -41,4 +41,7 @@ public class Vehicle {
     @Builder.Default
     private List<ServiceBooking> bookings = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 }

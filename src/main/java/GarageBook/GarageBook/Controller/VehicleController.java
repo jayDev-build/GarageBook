@@ -7,7 +7,7 @@ import GarageBook.GarageBook.Dto.Request.VehicleRequestDto;
 import GarageBook.GarageBook.Dto.Response.VehicleResponseDto;
 import GarageBook.GarageBook.Service.VehicleService;
 
-@RequestMapping("/api/vehicles")
+@RequestMapping("/vehicles")
 @RestController
 public class VehicleController {
     private final VehicleService vehicleService;
@@ -35,7 +35,8 @@ public class VehicleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VehicleResponseDto> updateVehicle(@PathVariable Long id, @RequestBody VehicleRequestDto request) {
+    public ResponseEntity<VehicleResponseDto> updateVehicle(@PathVariable Long id,
+            @RequestBody VehicleRequestDto request) {
         VehicleResponseDto response = vehicleService.updateVehicle(id, request);
         return ResponseEntity.ok(response);
     }

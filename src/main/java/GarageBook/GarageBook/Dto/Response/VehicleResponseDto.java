@@ -18,4 +18,6 @@ public class VehicleResponseDto {
     private String ownerName;
     private VehicleType vehicleType;
     private String vehicleNumber;
+    private Long garageId;
+    private String garageName;
 }

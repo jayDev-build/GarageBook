@@ -42,6 +42,7 @@ public class ServiceBooking {
     @Column(length = 20)
     private BookingStatus bookingStatus;
 
+    private long labourCharges;
     private Long totalAmount;
 
     @ManyToOne

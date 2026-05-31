@@ -7,7 +7,7 @@ import GarageBook.GarageBook.Dto.Request.ServicePartRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServicePartResponseDto;
 import GarageBook.GarageBook.Service.ServicePartService;
 
-@RequestMapping("/api/service-parts")
+@RequestMapping("/service-parts")
 @RestController
 public class ServicePartController {
     private final ServicePartService servicePartService;

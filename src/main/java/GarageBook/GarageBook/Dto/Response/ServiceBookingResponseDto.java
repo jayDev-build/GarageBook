@@ -23,6 +23,7 @@ public class ServiceBookingResponseDto {
     private LocalDateTime bookingTime;
     private BookingStatus bookingStatus;
     private Long totalAmount;
+    private Long labourCharges;
     private Long garageId;
     private String garageName;
     private List<ServicePartResponseDto> serviceParts;
