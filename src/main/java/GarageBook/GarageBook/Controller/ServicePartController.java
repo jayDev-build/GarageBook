@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.ServicePartRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateServicePartRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateServicePartRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServicePartResponseDto;
 import GarageBook.GarageBook.Service.ServicePartService;
 
@@ -17,7 +18,7 @@ public class ServicePartController {
     }
 
     @PostMapping
-    public ResponseEntity<ServicePartResponseDto> createServicePart(@RequestBody ServicePartRequestDto request) {
+    public ResponseEntity<ServicePartResponseDto> createServicePart(@RequestBody CreateServicePartRequestDto request) {
         ServicePartResponseDto response = servicePartService.createServicePart(request);
         return ResponseEntity.ok(response);
     }
@@ -35,10 +36,11 @@ public class ServicePartController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ServicePartResponseDto> updateServicePart(@PathVariable Long id, @RequestBody ServicePartRequestDto request) {
+    public ResponseEntity<ServicePartResponseDto> updateServicePart(@PathVariable Long id, @RequestBody UpdateServicePartRequestDto request) {
         ServicePartResponseDto response = servicePartService.updateServicePart(id, request);
         return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteServicePart(@PathVariable Long id) {

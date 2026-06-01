@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.ServiceBookingRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateServiceBookingRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServiceBookingResponseDto;
 import GarageBook.GarageBook.Service.ServiceBookingService;
 
@@ -17,7 +18,7 @@ public class ServiceBookingController {
     }
 
     @PostMapping
-    public ResponseEntity<ServiceBookingResponseDto> createBooking(@RequestBody ServiceBookingRequestDto request) {
+    public ResponseEntity<ServiceBookingResponseDto> createBooking(@RequestBody CreateServiceBookingRequestDto request) {
         ServiceBookingResponseDto response = serviceBookingService.createBooking(request);
         return ResponseEntity.ok(response);
     }
@@ -36,10 +37,11 @@ public class ServiceBookingController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ServiceBookingResponseDto> updateBooking(@PathVariable Long id,
-            @RequestBody ServiceBookingRequestDto request) {
+            @RequestBody UpdateServiceBookingRequestDto request) {
         ServiceBookingResponseDto response = serviceBookingService.updateBooking(id, request);
         return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {

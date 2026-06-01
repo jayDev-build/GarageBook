@@ -1,6 +1,7 @@
 package GarageBook.GarageBook.Dto.Request;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import GarageBook.GarageBook.Enums.BookingStatus;
 import GarageBook.GarageBook.Enums.ServiceType;
 import lombok.AllArgsConstructor;
@@ -14,13 +15,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceBookingRequestDto {
-    private Long vehicleId;
+public class UpdateServiceBookingRequestDto {
     private ServiceType serviceType;
     private LocalDateTime bookingTime;
     private BookingStatus bookingStatus;
     private Long totalAmount;
     private Long labourCharges;
-    private Long garageId;
-    private java.util.List<ServicePartRequestDto> serviceParts;
+    private List<CreateServicePartRequestDto> serviceParts;
 }

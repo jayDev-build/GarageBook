@@ -3,7 +3,9 @@ package GarageBook.GarageBook.Authentication;
 import GarageBook.GarageBook.Dto.Request.RegisterUserDto;
 import GarageBook.GarageBook.Dto.Response.LoginResponse;
 import GarageBook.GarageBook.Dto.Response.LoginUserDto;
+import GarageBook.GarageBook.Dto.Response.UserResponseDto;
 import GarageBook.GarageBook.Models.User;
+import GarageBook.GarageBook.Service.UserService;
 import GarageBook.GarageBook.WebSecurity.JwtService;
 
 import org.springframework.http.ResponseEntity;
@@ -21,20 +23,22 @@ import java.nio.charset.StandardCharsets;
 @RestController
 public class AuthenticationController {
     private final JwtService jwtService;
-
     private final AuthenticationService authenticationService;
+    private final UserService userService;
 
-    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService) {
+    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService, UserService userService) {
         this.jwtService = jwtService;
         this.authenticationService = authenticationService;
+        this.userService = userService;
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<User> register(@RequestBody RegisterUserDto registerUserDto) {
+    public ResponseEntity<UserResponseDto> register(@RequestBody RegisterUserDto registerUserDto) {
         User registeredUser = authenticationService.signup(registerUserDto);
-
-        return ResponseEntity.ok(registeredUser);
+        UserResponseDto response = userService.mapToResponse(registeredUser);
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto,

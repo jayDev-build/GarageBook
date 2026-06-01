@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import GarageBook.GarageBook.Dto.Request.GarageRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateGarageRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateGarageRequestDto;
 import GarageBook.GarageBook.Dto.Response.GarageResponseDto;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Repository.GarageRepository;
@@ -37,7 +38,7 @@ public class GarageService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
     }
 
-    public GarageResponseDto createGarage(GarageRequestDto request) {
+    public GarageResponseDto createGarage(CreateGarageRequestDto request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
@@ -73,21 +74,19 @@ public class GarageService {
         return mapToResponse(garage);
     }
 
-    public GarageResponseDto updateGarage(Long id, GarageRequestDto request) {
+    public GarageResponseDto updateGarage(Long id, UpdateGarageRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         if (!garage.getGarageId().equals(id)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id);
         }
 
-        garage.setName(request.getName());
-        garage.setAddress(request.getAddress());
         garage.setPhoneNumber(request.getPhoneNumber());
         garage.setEmail(request.getEmail());
-        garage.setGSTNumber(request.getGSTNumber());
 
         Garage updated = garageRepository.save(garage);
         return mapToResponse(updated);
     }
+
 
     public void deleteGarage(Long id) {
         Garage garage = getAuthenticatedUserGarage();

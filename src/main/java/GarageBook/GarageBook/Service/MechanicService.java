@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import GarageBook.GarageBook.Dto.Request.MechanicRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateMechanicRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateMechanicRequestDto;
 import GarageBook.GarageBook.Dto.Response.MechanicResponseDto;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Models.Mechanic;
@@ -38,7 +39,7 @@ public class MechanicService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
     }
 
-    public MechanicResponseDto createMechanic(MechanicRequestDto request) {
+    public MechanicResponseDto createMechanic(CreateMechanicRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
 
         Mechanic mechanic = Mechanic.builder()
@@ -72,7 +73,7 @@ public class MechanicService {
         return mapToResponse(mechanic);
     }
 
-    public MechanicResponseDto updateMechanic(Long id, MechanicRequestDto request) {
+    public MechanicResponseDto updateMechanic(Long id, UpdateMechanicRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Mechanic mechanic = mechanicRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
@@ -81,15 +82,13 @@ public class MechanicService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
         }
 
-        mechanic.setName(request.getName());
         mechanic.setPhoneNumber(request.getPhoneNumber());
-        mechanic.setAdhaarNumber(request.getAdhaarNumber());
         mechanic.setAddress(request.getAddress());
-        mechanic.setGarage(garage);
 
         Mechanic updated = mechanicRepository.save(mechanic);
         return mapToResponse(updated);
     }
+
 
     public void deleteMechanic(Long id) {
         Garage garage = getAuthenticatedUserGarage();

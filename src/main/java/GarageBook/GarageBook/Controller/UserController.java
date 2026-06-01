@@ -1,5 +1,6 @@
 package GarageBook.GarageBook.Controller;
 
+import GarageBook.GarageBook.Dto.Response.UserResponseDto;
 import GarageBook.GarageBook.Models.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,17 +21,17 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> authenticatedUser() {
+    public ResponseEntity<UserResponseDto> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        User freshUser = userService.getUserByUsername(currentUser.getUsername());
+        UserResponseDto freshUser = userService.getUserByUsername(currentUser.getUsername());
         return ResponseEntity.ok(freshUser);
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<User>> allUsers() {
-        List<User> users = userService.allUsers();
-
+    public ResponseEntity<List<UserResponseDto>> allUsers() {
+        List<UserResponseDto> users = userService.allUsers();
         return ResponseEntity.ok(users);
     }
 }
+

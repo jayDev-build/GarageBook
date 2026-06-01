@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.MechanicRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateMechanicRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateMechanicRequestDto;
 import GarageBook.GarageBook.Dto.Response.MechanicResponseDto;
 import GarageBook.GarageBook.Service.MechanicService;
 
@@ -17,7 +18,7 @@ public class MechanicController {
     }
 
     @PostMapping
-    public ResponseEntity<MechanicResponseDto> createMechanic(@RequestBody MechanicRequestDto request) {
+    public ResponseEntity<MechanicResponseDto> createMechanic(@RequestBody CreateMechanicRequestDto request) {
         MechanicResponseDto response = mechanicService.createMechanic(request);
         return ResponseEntity.ok(response);
     }
@@ -35,10 +36,11 @@ public class MechanicController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MechanicResponseDto> updateMechanic(@PathVariable Long id, @RequestBody MechanicRequestDto request) {
+    public ResponseEntity<MechanicResponseDto> updateMechanic(@PathVariable Long id, @RequestBody UpdateMechanicRequestDto request) {
         MechanicResponseDto response = mechanicService.updateMechanic(id, request);
         return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMechanic(@PathVariable Long id) {

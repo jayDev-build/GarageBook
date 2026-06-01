@@ -1,6 +1,5 @@
 package GarageBook.GarageBook.Dto.Request;
 
-import GarageBook.GarageBook.Enums.VehicleType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,8 +11,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class VehicleRequestDto {
-    private Long ownerId;
-    private VehicleType vehicleType;
-    private String vehicleNumber;
+public class CreatePartRequestDto {
+    private String partName;
+    private String partSize;
+    private String partNumber;
+    private Integer stockQuantity;
+    private Long defaultPrice;
 }

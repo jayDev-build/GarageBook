@@ -1,5 +1,6 @@
 package GarageBook.GarageBook.Dto.Request;
 
+import GarageBook.GarageBook.Enums.VehicleType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,10 +12,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GarageRequestDto {
-    private String name;
-    private String address;
-    private String phoneNumber;
-    private String email;
-    private String GSTNumber;
+public class CreateVehicleRequestDto {
+    private Long ownerId;
+    private VehicleType vehicleType;
+    private String vehicleNumber;
 }

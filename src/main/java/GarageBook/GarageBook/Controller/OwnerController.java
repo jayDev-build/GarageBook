@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.OwnerRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateOwnerRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateOwnerRequestDto;
 import GarageBook.GarageBook.Dto.Response.OwnerResponseDto;
 import GarageBook.GarageBook.Service.OwnerService;
 
@@ -17,7 +18,7 @@ public class OwnerController {
     }
 
     @PostMapping
-    public ResponseEntity<OwnerResponseDto> createOwner(@RequestBody OwnerRequestDto request) {
+    public ResponseEntity<OwnerResponseDto> createOwner(@RequestBody CreateOwnerRequestDto request) {
         OwnerResponseDto response = ownerService.createOwner(request);
         return ResponseEntity.ok(response);
     }
@@ -35,10 +36,11 @@ public class OwnerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OwnerResponseDto> updateOwner(@PathVariable Long id, @RequestBody OwnerRequestDto request) {
+    public ResponseEntity<OwnerResponseDto> updateOwner(@PathVariable Long id, @RequestBody UpdateOwnerRequestDto request) {
         OwnerResponseDto response = ownerService.updateOwner(id, request);
         return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOwner(@PathVariable Long id) {

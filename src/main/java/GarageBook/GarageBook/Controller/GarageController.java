@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.GarageRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateGarageRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateGarageRequestDto;
 import GarageBook.GarageBook.Dto.Response.GarageResponseDto;
 import GarageBook.GarageBook.Service.GarageService;
 
@@ -17,7 +18,7 @@ public class GarageController {
     }
 
     @PostMapping
-    public ResponseEntity<GarageResponseDto> createGarage(@RequestBody GarageRequestDto request) {
+    public ResponseEntity<GarageResponseDto> createGarage(@RequestBody CreateGarageRequestDto request) {
         GarageResponseDto response = garageService.createGarage(request);
         return ResponseEntity.ok(response);
     }
@@ -35,10 +36,11 @@ public class GarageController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<GarageResponseDto> updateGarage(@PathVariable Long id, @RequestBody GarageRequestDto request) {
+    public ResponseEntity<GarageResponseDto> updateGarage(@PathVariable Long id, @RequestBody UpdateGarageRequestDto request) {
         GarageResponseDto response = garageService.updateGarage(id, request);
         return ResponseEntity.ok(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteGarage(@PathVariable Long id) {

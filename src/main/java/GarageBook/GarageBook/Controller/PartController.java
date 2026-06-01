@@ -3,11 +3,12 @@ package GarageBook.GarageBook.Controller;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import GarageBook.GarageBook.Dto.Request.PartRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreatePartRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdatePartRequestDto;
 import GarageBook.GarageBook.Dto.Response.PartResponseDto;
 import GarageBook.GarageBook.Service.PartService;
 
-@RequestMapping("/parts")
+@RequestMapping("/api/parts")
 @RestController
 public class PartController {
     private final PartService partService;
@@ -17,7 +18,7 @@ public class PartController {
     }
 
     @PostMapping
-    public ResponseEntity<PartResponseDto> createPart(@RequestBody PartRequestDto request) {
+    public ResponseEntity<PartResponseDto> createPart(@RequestBody CreatePartRequestDto request) {
         PartResponseDto response = partService.createPart(request);
         return ResponseEntity.ok(response);
     }
@@ -35,7 +36,7 @@ public class PartController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PartResponseDto> updatePart(@PathVariable Long id, @RequestBody PartRequestDto request) {
+    public ResponseEntity<PartResponseDto> updatePart(@PathVariable Long id, @RequestBody UpdatePartRequestDto request) {
         PartResponseDto response = partService.updatePart(id, request);
         return ResponseEntity.ok(response);
     }

@@ -11,10 +11,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PartRequestDto {
-    private String partName;
-    private String partSize;
-    private String partNumber;
-    private Integer stockQuantity;
-    private Long defaultPrice;
+public class CreateGarageRequestDto {
+    private String name;
+    private String address;
+    private String phoneNumber;
+    private String email;
+    private String GSTNumber;
 }

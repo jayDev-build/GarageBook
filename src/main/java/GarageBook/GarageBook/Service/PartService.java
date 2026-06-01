@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import GarageBook.GarageBook.Dto.Request.PartRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreatePartRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdatePartRequestDto;
 import GarageBook.GarageBook.Dto.Response.PartResponseDto;
 import GarageBook.GarageBook.Models.Part;
 import GarageBook.GarageBook.Models.Garage;
@@ -35,7 +36,7 @@ public class PartService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
     }
 
-    public PartResponseDto createPart(PartRequestDto request) {
+    public PartResponseDto createPart(CreatePartRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
 
         Part part = Part.builder()
@@ -70,7 +71,7 @@ public class PartService {
         return mapToResponse(part);
     }
 
-    public PartResponseDto updatePart(Long id, PartRequestDto request) {
+    public PartResponseDto updatePart(Long id, UpdatePartRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Part part = partRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + id));
@@ -82,13 +83,13 @@ public class PartService {
         part.setPartName(request.getPartName());
         part.setPartSize(request.getPartSize());
         part.setPartNumber(request.getPartNumber());
-        part.setStockQuantity(request.getStockQuantity());
         part.setDefaultPrice(request.getDefaultPrice());
         part.setGarage(garage);
 
         Part updated = partRepository.save(part);
         return mapToResponse(updated);
     }
+
 
     public void deletePart(Long id) {
         Garage garage = getAuthenticatedUserGarage();

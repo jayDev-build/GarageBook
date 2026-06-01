@@ -11,8 +11,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class OwnerRequestDto {
-    private String name;
-    private String email;
-    private String phoneNumber;
+public class UpdateServicePartRequestDto {
+    private Long partId;
+    private Integer quantity;
+    private Long pricePerUnit;
 }

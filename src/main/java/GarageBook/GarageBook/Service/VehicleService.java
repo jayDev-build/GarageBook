@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import GarageBook.GarageBook.Dto.Request.VehicleRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateVehicleRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateVehicleRequestDto;
 import GarageBook.GarageBook.Dto.Response.VehicleResponseDto;
 import GarageBook.GarageBook.Models.Owner;
 import GarageBook.GarageBook.Models.Vehicle;
@@ -39,7 +40,7 @@ public class VehicleService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
     }
 
-    public VehicleResponseDto createVehicle(VehicleRequestDto request) {
+    public VehicleResponseDto createVehicle(CreateVehicleRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
 
         Owner owner = ownerRepository.findById(request.getOwnerId())
@@ -75,7 +76,7 @@ public class VehicleService {
         return mapToResponse(vehicle);
     }
 
-    public VehicleResponseDto updateVehicle(Long id, VehicleRequestDto request) {
+    public VehicleResponseDto updateVehicle(Long id, UpdateVehicleRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle not found with id: " + id));
@@ -84,10 +85,6 @@ public class VehicleService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to vehicle: " + id);
         }
 
-        Owner owner = ownerRepository.findById(request.getOwnerId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found with id: " + request.getOwnerId()));
-
-        vehicle.setOwner(owner);
         vehicle.setVehicleType(request.getVehicleType());
         vehicle.setVehicleNumber(request.getVehicleNumber());
         vehicle.setGarage(garage);
@@ -95,6 +92,7 @@ public class VehicleService {
         Vehicle updated = vehicleRepository.save(vehicle);
         return mapToResponse(updated);
     }
+
 
     public void deleteVehicle(Long id) {
         Garage garage = getAuthenticatedUserGarage();

@@ -3,7 +3,8 @@ package GarageBook.GarageBook.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import GarageBook.GarageBook.Dto.Request.ServiceBookingRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateServiceBookingRequestDto;
+import GarageBook.GarageBook.Dto.Request.UpdateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServiceBookingResponseDto;
 import GarageBook.GarageBook.Dto.Response.ServicePartResponseDto;
 import GarageBook.GarageBook.Models.Garage;
@@ -51,7 +52,7 @@ public class ServiceBookingService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
     }
 
-    public ServiceBookingResponseDto createBooking(ServiceBookingRequestDto request) {
+    public ServiceBookingResponseDto createBooking(CreateServiceBookingRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -92,7 +93,7 @@ public class ServiceBookingService {
     }
 
     @Transactional // 1. Crucial for inventory rollbacks if stock check fails
-    public ServiceBookingResponseDto updateBooking(Long id, ServiceBookingRequestDto request) {
+    public ServiceBookingResponseDto updateBooking(Long id, UpdateServiceBookingRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         ServiceBooking booking = serviceBookingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -102,20 +103,21 @@ public class ServiceBookingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
         }
 
-        // [Keep your existing Vehicle, ServiceType, BookingTime, Status, Amount, Labour
-        // updates here...]
-        if (request.getVehicleId() != null) {
-            /* ... */ }
         if (request.getServiceType() != null) {
-            /* ... */ }
+            booking.setServiceType(request.getServiceType());
+        }
         if (request.getBookingTime() != null) {
-            /* ... */ }
+            booking.setBookingTime(request.getBookingTime());
+        }
         if (request.getBookingStatus() != null) {
-            /* ... */ }
+            booking.setBookingStatus(request.getBookingStatus());
+        }
         if (request.getTotalAmount() != null) {
-            /* ... */ }
+            booking.setTotalAmount(request.getTotalAmount());
+        }
         if (request.getLabourCharges() != null) {
-            /* ... */ }
+            booking.setLabourCharges(request.getLabourCharges());
+        }
 
         // --- INVENTORY MANAGEMENT LOGIC START ---
         if (request.getServiceParts() != null) {
@@ -123,7 +125,7 @@ public class ServiceBookingService {
             // 2. Revert Previous State: Add old quantities back to part inventory
             for (GarageBook.GarageBook.Models.ServicePart oldServicePart : booking.getServiceParts()) {
                 GarageBook.GarageBook.Models.Part part = oldServicePart.getPart();
-                part.setQuantity(part.getQuantity() + oldServicePart.getQuantity()); // Restoring stock
+                part.setStockQuantity(part.getStockQuantity() + oldServicePart.getQuantity()); // Restoring stock
                 partRepository.save(part);
             }
 
@@ -131,20 +133,20 @@ public class ServiceBookingService {
             booking.getServiceParts().clear();
 
             // 4. Apply New State: Validate and subtract new quantities
-            for (GarageBook.GarageBook.Dto.Request.ServicePartRequestDto partReq : request.getServiceParts()) {
+            for (GarageBook.GarageBook.Dto.Request.CreateServicePartRequestDto partReq : request.getServiceParts()) {
                 GarageBook.GarageBook.Models.Part part = partRepository.findById(partReq.getPartId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Part not found with id: " + partReq.getPartId()));
 
                 // Stock Check Validation
-                if (part.getQuantity() < partReq.getQuantity()) {
+                if (part.getStockQuantity() < partReq.getQuantity()) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Insufficient stock for part: " + part.getName() + " (Requested: " + partReq.getQuantity()
-                                    + ", Available: " + part.getQuantity() + ")");
+                            "Insufficient stock for part: " + part.getPartName() + " (Requested: " + partReq.getQuantity()
+                                    + ", Available: " + part.getStockQuantity() + ")");
                 }
 
                 // Deduct from inventory
-                part.setQuantity(part.getQuantity() - partReq.getQuantity());
+                part.setStockQuantity(part.getStockQuantity() - partReq.getQuantity());
                 partRepository.save(part);
 
                 // Construct new ServicePart mapping (Your existing builder block)
@@ -167,6 +169,7 @@ public class ServiceBookingService {
         ServiceBooking updated = serviceBookingRepository.save(booking);
         return mapToResponse(updated);
     }
+
 
     public void deleteBooking(Long id) {
         Garage garage = getAuthenticatedUserGarage();

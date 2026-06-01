@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServicePartRequestDto {
+public class CreateServicePartRequestDto {
     private Long partId;
     private Long serviceBookingId;
     private Integer quantity;
