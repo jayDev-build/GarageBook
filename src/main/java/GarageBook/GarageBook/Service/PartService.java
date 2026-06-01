@@ -44,7 +44,7 @@ public class PartService {
                 .partSize(request.getPartSize())
                 .partNumber(request.getPartNumber())
                 .stockQuantity(request.getStockQuantity())
-                .defaultPrice(request.getDefaultPrice())   
+                .pricePerUnit(request.getPricePerUnit())
                 .garage(garage)
                 .build();
 
@@ -54,7 +54,8 @@ public class PartService {
 
     public List<PartResponseDto> getAllParts() {
         Garage garage = getAuthenticatedUserGarage();
-        return partRepository.findByGarage(garage).stream()
+        List<Part> ls = partRepository.findByGarage(garage);
+        return ls.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -83,13 +84,12 @@ public class PartService {
         part.setPartName(request.getPartName());
         part.setPartSize(request.getPartSize());
         part.setPartNumber(request.getPartNumber());
-        part.setDefaultPrice(request.getDefaultPrice());
+        part.setPricePerUnit(request.getPricePerUnit());
         part.setGarage(garage);
 
         Part updated = partRepository.save(part);
         return mapToResponse(updated);
     }
-
 
     public void deletePart(Long id) {
         Garage garage = getAuthenticatedUserGarage();
@@ -110,7 +110,7 @@ public class PartService {
                 .partSize(part.getPartSize())
                 .partNumber(part.getPartNumber())
                 .stockQuantity(part.getStockQuantity())
-                .defaultPrice(part.getDefaultPrice())
+                .pricePerUnit(part.getPricePerUnit())
                 .garageId(part.getGarage() != null ? part.getGarage().getGarageId() : null)
                 .garageName(part.getGarage() != null ? part.getGarage().getName() : null)
                 .build();

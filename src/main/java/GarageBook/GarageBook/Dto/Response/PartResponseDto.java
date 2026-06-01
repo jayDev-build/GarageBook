@@ -17,7 +17,7 @@ public class PartResponseDto {
     private String partSize;
     private String partNumber;
     private Integer stockQuantity;
-    private Long defaultPrice;
+    private Long pricePerUnit;
     private Long garageId;
     private String garageName;
 }

@@ -16,5 +16,5 @@ public class CreatePartRequestDto {
     private String partSize;
     private String partNumber;
     private Integer stockQuantity;
-    private Long defaultPrice;
+    private Long pricePerUnit;
 }

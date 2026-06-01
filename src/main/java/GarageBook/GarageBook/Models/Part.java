@@ -31,7 +31,7 @@ public class Part {
 
     private Integer stockQuantity;
 
-    private Long defaultPrice;
+    private Long pricePerUnit;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id")

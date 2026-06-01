@@ -4,15 +4,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import GarageBook.GarageBook.Dto.Request.CreateServiceBookingRequestDto;
+import GarageBook.GarageBook.Dto.Request.CreateServicePartRequestDto;
 import GarageBook.GarageBook.Dto.Request.UpdateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServiceBookingResponseDto;
 import GarageBook.GarageBook.Dto.Response.ServicePartResponseDto;
 import GarageBook.GarageBook.Models.Garage;
+import GarageBook.GarageBook.Models.Part;
 import GarageBook.GarageBook.Models.ServiceBooking;
 import GarageBook.GarageBook.Models.ServicePart;
 import GarageBook.GarageBook.Models.Vehicle;
 import GarageBook.GarageBook.Repository.GarageRepository;
 import GarageBook.GarageBook.Repository.ServiceBookingRepository;
+import GarageBook.GarageBook.Repository.ServicePartRepository;
+
 import org.springframework.transaction.annotation.Transactional;
 import GarageBook.GarageBook.Repository.VehicleRepository;
 import org.springframework.http.HttpStatus;
@@ -27,16 +31,19 @@ public class ServiceBookingService {
     private final VehicleRepository vehicleRepository;
     private final GarageRepository garageRepository;
     private final GarageBook.GarageBook.Repository.PartRepository partRepository;
+    private final GarageBook.GarageBook.Repository.ServicePartRepository servicePartRepository;
 
     public ServiceBookingService(
             ServiceBookingRepository serviceBookingRepository,
             VehicleRepository vehicleRepository,
             GarageRepository garageRepository,
-            GarageBook.GarageBook.Repository.PartRepository partRepository) {
+            GarageBook.GarageBook.Repository.PartRepository partRepository,
+            ServicePartRepository servicePartRepository) {
         this.serviceBookingRepository = serviceBookingRepository;
         this.vehicleRepository = vehicleRepository;
         this.garageRepository = garageRepository;
         this.partRepository = partRepository;
+        this.servicePartRepository = servicePartRepository;
     }
 
     private Garage getAuthenticatedUserGarage() {
@@ -103,55 +110,59 @@ public class ServiceBookingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
         }
 
-        if (request.getServiceType() != null) {
+        if (request.getServiceType() != null)
             booking.setServiceType(request.getServiceType());
-        }
-        if (request.getBookingTime() != null) {
+        if (request.getBookingTime() != null)
             booking.setBookingTime(request.getBookingTime());
-        }
-        if (request.getBookingStatus() != null) {
+        if (request.getBookingStatus() != null)
             booking.setBookingStatus(request.getBookingStatus());
-        }
-        if (request.getTotalAmount() != null) {
+        if (request.getTotalAmount() != null)
             booking.setTotalAmount(request.getTotalAmount());
-        }
-        if (request.getLabourCharges() != null) {
+        if (request.getLabourCharges() != null)
             booking.setLabourCharges(request.getLabourCharges());
-        }
 
         // --- INVENTORY MANAGEMENT LOGIC START ---
         if (request.getServiceParts() != null) {
 
-            // 2. Revert Previous State: Add old quantities back to part inventory
-            for (GarageBook.GarageBook.Models.ServicePart oldServicePart : booking.getServiceParts()) {
-                GarageBook.GarageBook.Models.Part part = oldServicePart.getPart();
+            // 1. Snapshot old state into a standalone temporary list
+            // This isolates the elements so we don't cause a concurrent modification loop
+            List<ServicePart> oldPartsSnapshot = new java.util.ArrayList<>(booking.getServiceParts());
+
+            // 2. Revert Previous State using the snapshot
+            for (ServicePart oldServicePart : oldPartsSnapshot) {
+                Part part = oldServicePart.getPart();
                 part.setStockQuantity(part.getStockQuantity() + oldServicePart.getQuantity()); // Restoring stock
                 partRepository.save(part);
             }
 
-            // 3. Clear the existing items (Your existing line)
+            // 3. Clear the managed collection directly!
+            // Because orphanRemoval = true is active, Hibernate marks these records for
+            // deletion
+            // and manages the internal tracker flawlessly without breaking references.
             booking.getServiceParts().clear();
 
+            // Flush the restored stock updates so step 4 can read fresh numbers
+            partRepository.flush();
+
             // 4. Apply New State: Validate and subtract new quantities
-            for (GarageBook.GarageBook.Dto.Request.CreateServicePartRequestDto partReq : request.getServiceParts()) {
-                GarageBook.GarageBook.Models.Part part = partRepository.findById(partReq.getPartId())
+            for (CreateServicePartRequestDto partReq : request.getServiceParts()) {
+                Part part = partRepository.findById(partReq.getPartId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Part not found with id: " + partReq.getPartId()));
 
                 // Stock Check Validation
                 if (part.getStockQuantity() < partReq.getQuantity()) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Insufficient stock for part: " + part.getPartName() + " (Requested: " + partReq.getQuantity()
-                                    + ", Available: " + part.getStockQuantity() + ")");
+                            "Insufficient stock for part: " + part.getPartName() + " (Requested: "
+                                    + partReq.getQuantity() + ", Available: " + part.getStockQuantity() + ")");
                 }
 
                 // Deduct from inventory
                 part.setStockQuantity(part.getStockQuantity() - partReq.getQuantity());
                 partRepository.save(part);
 
-                // Construct new ServicePart mapping (Your existing builder block)
-                GarageBook.GarageBook.Models.ServicePart servicePart = GarageBook.GarageBook.Models.ServicePart
-                        .builder()
+                // Construct new ServicePart mapping
+                ServicePart servicePart = ServicePart.builder()
                         .part(part)
                         .serviceBooking(booking)
                         .quantity(partReq.getQuantity())
@@ -159,17 +170,16 @@ public class ServiceBookingService {
                         .totalPrice(partReq.getPricePerUnit() * partReq.getQuantity())
                         .build();
 
+                // Add to the managed collection (Hibernate handles the SQL INSERT later)
                 booking.addServicePart(servicePart);
             }
-        }
-        // --- INVENTORY MANAGEMENT LOGIC END ---
+        } // --- INVENTORY MANAGEMENT LOGIC END ---
 
         booking.setGarage(garage);
-
         ServiceBooking updated = serviceBookingRepository.save(booking);
         return mapToResponse(updated);
-    }
 
+    }
 
     public void deleteBooking(Long id) {
         Garage garage = getAuthenticatedUserGarage();
