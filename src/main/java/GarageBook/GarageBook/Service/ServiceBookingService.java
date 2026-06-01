@@ -12,6 +12,7 @@ import GarageBook.GarageBook.Models.ServicePart;
 import GarageBook.GarageBook.Models.Vehicle;
 import GarageBook.GarageBook.Repository.GarageRepository;
 import GarageBook.GarageBook.Repository.ServiceBookingRepository;
+import org.springframework.transaction.annotation.Transactional;
 import GarageBook.GarageBook.Repository.VehicleRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -90,6 +91,7 @@ public class ServiceBookingService {
         return mapToResponse(booking);
     }
 
+    @Transactional // 1. Crucial for inventory rollbacks if stock check fails
     public ServiceBookingResponseDto updateBooking(Long id, ServiceBookingRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         ServiceBooking booking = serviceBookingRepository.findById(id)
@@ -100,49 +102,65 @@ public class ServiceBookingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
         }
 
+        // [Keep your existing Vehicle, ServiceType, BookingTime, Status, Amount, Labour
+        // updates here...]
         if (request.getVehicleId() != null) {
-            Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Vehicle not found with id: " + request.getVehicleId()));
-            booking.setVehicle(vehicle);
-        }
-
+            /* ... */ }
         if (request.getServiceType() != null) {
-            booking.setServiceType(request.getServiceType());
-        }
-
+            /* ... */ }
         if (request.getBookingTime() != null) {
-            booking.setBookingTime(request.getBookingTime());
-        }
-
+            /* ... */ }
         if (request.getBookingStatus() != null) {
-            booking.setBookingStatus(request.getBookingStatus());
-        }
-
+            /* ... */ }
         if (request.getTotalAmount() != null) {
-            booking.setTotalAmount(request.getTotalAmount());
-        }
-
+            /* ... */ }
         if (request.getLabourCharges() != null) {
-            booking.setLabourCharges(request.getLabourCharges());
-        }
+            /* ... */ }
 
+        // --- INVENTORY MANAGEMENT LOGIC START ---
         if (request.getServiceParts() != null) {
+
+            // 2. Revert Previous State: Add old quantities back to part inventory
+            for (GarageBook.GarageBook.Models.ServicePart oldServicePart : booking.getServiceParts()) {
+                GarageBook.GarageBook.Models.Part part = oldServicePart.getPart();
+                part.setQuantity(part.getQuantity() + oldServicePart.getQuantity()); // Restoring stock
+                partRepository.save(part);
+            }
+
+            // 3. Clear the existing items (Your existing line)
             booking.getServiceParts().clear();
+
+            // 4. Apply New State: Validate and subtract new quantities
             for (GarageBook.GarageBook.Dto.Request.ServicePartRequestDto partReq : request.getServiceParts()) {
                 GarageBook.GarageBook.Models.Part part = partRepository.findById(partReq.getPartId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + partReq.getPartId()));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Part not found with id: " + partReq.getPartId()));
 
-                GarageBook.GarageBook.Models.ServicePart servicePart = GarageBook.GarageBook.Models.ServicePart.builder()
+                // Stock Check Validation
+                if (part.getQuantity() < partReq.getQuantity()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Insufficient stock for part: " + part.getName() + " (Requested: " + partReq.getQuantity()
+                                    + ", Available: " + part.getQuantity() + ")");
+                }
+
+                // Deduct from inventory
+                part.setQuantity(part.getQuantity() - partReq.getQuantity());
+                partRepository.save(part);
+
+                // Construct new ServicePart mapping (Your existing builder block)
+                GarageBook.GarageBook.Models.ServicePart servicePart = GarageBook.GarageBook.Models.ServicePart
+                        .builder()
                         .part(part)
                         .serviceBooking(booking)
                         .quantity(partReq.getQuantity())
                         .pricePerUnit(partReq.getPricePerUnit())
                         .totalPrice(partReq.getPricePerUnit() * partReq.getQuantity())
                         .build();
+
                 booking.addServicePart(servicePart);
             }
         }
+        // --- INVENTORY MANAGEMENT LOGIC END ---
 
         booking.setGarage(garage);
 
