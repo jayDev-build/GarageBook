@@ -1,7 +1,6 @@
 package GarageBook.GarageBook.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import GarageBook.GarageBook.Dto.Request.CreateGarageRequestDto;
 import GarageBook.GarageBook.Dto.Request.UpdateGarageRequestDto;
@@ -86,7 +85,6 @@ public class GarageService {
         Garage updated = garageRepository.save(garage);
         return mapToResponse(updated);
     }
-
 
     public void deleteGarage(Long id) {
         Garage garage = getAuthenticatedUserGarage();

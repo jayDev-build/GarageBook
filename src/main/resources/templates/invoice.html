@@ -1,118 +1,115 @@
 <html>
-  <head>
+
+<head lang="en" xmlns:th="http://www.thymeleaf.org">
     <title>Invoice</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin:75px;
-      }
-      #garage-info {
-        /* border: 1px solid #ccc; */
-        padding: 10px;
-        margin-bottom: 20px;
-        display: grid;
-        justify-items: end;
-        align-items: center;
-        max-width: 60%;
-        margin-left: auto;
-      }
-    
-      #garage-info *{
-        font-size: 20px;
-        text-align: right;
-        margin: 0;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 75px;
+        }
 
-      .customer-info {
-        margin-bottom: 20px;
-        display: grid;
-        justify-content: start;
-        align-items: center;
-      }
+        #garage-info {
+            /* border: 1px solid #ccc; */
+            padding: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            justify-items: end;
+            align-items: center;
+            max-width: 60%;
+            margin-left: auto;
+        }
 
-      .customer-invoice-details {
-        display: flex;
-        justify-content: space-between;
-        gap: 20px;
-      }
+        #garage-info * {
+            font-size: 20px;
+            text-align: right;
+            margin: 0;
+        }
 
-      th{
-        background-color: #f2f2f2;
-        text-align: center;
-      }
+        .customer-info {
+            margin-bottom: 20px;
+            display: grid;
+            justify-content: start;
+            align-items: center;
+        }
 
-      td{
-        text-align: center;
-      }
+        .customer-invoice-details {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
 
+        th {
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+
+        td {
+            text-align: center;
+        }
     </style>
-  </head>
-  <body>
+
+</head>
+
+<body>
     <center>
         <h1>Invoice</h1>
     </center>
-    <div id="garage-info" >
+    <div id="garage-info">
         <div class="garage-name">
             <strong>
-                Garage Name:
-            </strong> Auto Care Garage 
+                <span th:text="${invoice.garage.name}"></span>
+            </strong>
         </div>
-        <div id="garage-GST" >
+        <div id="garage-GST">
             <strong>
                 GST Number:
-            </strong> 123456789
+            </strong> <span th:text="${invoice.garage.GSTNumber}"></span>
         </div>
         <div class="garage-email">
             <strong>
                 Email:
             </strong>
-            garage@example.com
+            <span th:text="${invoice.garage.email}"></span>
         </div>
         <div class="garage-phone">
             <strong>
                 Phone:
             </strong>
-            123-456-7890
-        </div>
-        <div class="garage-website">
-            <strong>
-                Website:
-            </strong>
-            www.garage.com
+            <span th:text="${invoice.garage.phoneNumber}"></span>
         </div>
     </div>
     <hr>
 
-    <div class="customer-invoice-details">      
-    <div id="customer-info" class="customer-info">
-        <h3>Bill to:</h3>
-        <div>
-            <strong>Name:</strong> John Doe
-        </div>
-        <div>
-            <strong>Phone:</strong> 123-456-7890
-        </div>
-        <div>
-            <strong>Email:</strong> john.doe@example.com
-        </div>
-    </div>
-
-    <div id="invoice-details" class="customer-info">
-        <h3>Invoice Details:</h3>
-        <div>
-            <strong>Invoice Number:</strong> INV-001
-        </div>
-        <div>
-            <strong>Date:</strong> 2024-06-01
+    <div class="customer-invoice-details">
+        <div id="customer-info" class="customer-info">
+            <h3>Bill to:</h3>
+            <div>
+                <strong>Name:</strong> <span th:text="${invoice.owner.name}"></span>
+            </div>
+            <div>
+                <strong>Phone:</strong> <span th:text="${invoice.owner.phoneNumber}"></span>
+            </div>
+            <div>
+                <strong>Email:</strong> <span th:text="${invoice.owner.email}"></span>
+            </div>
         </div>
 
-    </div>
+        <div id="invoice-details" class="customer-info">
+            <h3>Invoice Details:</h3>
+            <div>
+                <strong>Invoice Number:</strong> <span th:text="${invoice.invoiceNumber}"></span>
+            </div>
+            <div>
+                <strong>Date:</strong> <span th:text="${invoice.createdAt}"></span>
+            </div>
+
+        </div>
     </div>
     <hr>
 
-    <div class = "invoice-items">
+    <div class="invoice-items">
         <h3>Invoice Items:</h3>
-        <table  cellpadding="5" cellspacing="0" width="100%">
+        <table cellpadding="5" cellspacing="0" width="100%">
             <thead>
                 <tr>
                     <th>Description</th>
@@ -122,38 +119,34 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Oil Change</td>
-                    <td>1</td>
-                    <td>$50.00</td>
-                    <td>$50.00</td>
+                <tr th:each="item : ${invoice.invoiceItems}">
+                    <td th:text="${item.part?.partName}"></td>
+                    <td th:text="${item.quantity}"></td>
+                    <td th:text="${item.pricePerUnit}"></td>
+                    <td th:text="${item.totalPrice}"></td>
                 </tr>
-                <tr>
-                    <td>Tire Rotation</td>
-                    <td>4</td>
-                    <td>$25.00</td>
-                    <td>$100.00</td>
-                </tr>
+
             </tbody>
         </table>
 
         <div style="text-align: right; margin-top: 20px;">
-            <strong>Total Amount Due: $150.00</strong>
+            <strong>Total Amount Due: <span th:text="${invoice.totalAmount}"></span></strong>
         </div>
     </div>
-    
-    <div class = "vehicle details">
-        <div class = "vehicle-number">
-            <strong>Vehicle Number:</strong> ABC-1234
+
+    <div class="vehicle details">
+        <div class="vehicle-number">
+            <strong>Vehicle Number:</strong> <span th:text="${invoice.vehicle?.vehicleNumber}"></span>
         </div>
     </div>
     <hr>
-    <div class = "footer">
+    <div class="footer">
         <p>Thank you for your business!</p>
         <p>Please contact us with any questions or concerns.</p>
         <p style="text-align: right; margin-left: 80%;">
             page 1 of 1
         </p>
     </div>
-  </body>
+</body>
+
 </html>

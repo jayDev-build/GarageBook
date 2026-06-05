@@ -8,7 +8,6 @@ import GarageBook.GarageBook.Dto.Request.UpdateMechanicRequestDto;
 import GarageBook.GarageBook.Dto.Response.MechanicResponseDto;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Models.Mechanic;
-import GarageBook.GarageBook.Repository.GarageRepository;
 import GarageBook.GarageBook.Repository.MechanicRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,11 +18,9 @@ import GarageBook.GarageBook.Models.User;
 @Service
 public class MechanicService {
     private final MechanicRepository mechanicRepository;
-    private final GarageRepository garageRepository;
 
-    public MechanicService(MechanicRepository mechanicRepository, GarageRepository garageRepository) {
+    public MechanicService(MechanicRepository mechanicRepository) {
         this.mechanicRepository = mechanicRepository;
-        this.garageRepository = garageRepository;
     }
 
     private Garage getAuthenticatedUserGarage() {
@@ -64,7 +61,8 @@ public class MechanicService {
     public MechanicResponseDto getMechanicById(Long id) {
         Garage garage = getAuthenticatedUserGarage();
         Mechanic mechanic = mechanicRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
         if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
@@ -76,7 +74,8 @@ public class MechanicService {
     public MechanicResponseDto updateMechanic(Long id, UpdateMechanicRequestDto request) {
         Garage garage = getAuthenticatedUserGarage();
         Mechanic mechanic = mechanicRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
         if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
@@ -89,11 +88,11 @@ public class MechanicService {
         return mapToResponse(updated);
     }
 
-
     public void deleteMechanic(Long id) {
         Garage garage = getAuthenticatedUserGarage();
         Mechanic mechanic = mechanicRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
         if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);

@@ -1,7 +1,10 @@
 package GarageBook.GarageBook.Controller;
 
 import java.util.List;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import GarageBook.GarageBook.Dto.Request.CreateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Request.UpdateServiceBookingRequestDto;
@@ -18,7 +21,8 @@ public class ServiceBookingController {
     }
 
     @PostMapping
-    public ResponseEntity<ServiceBookingResponseDto> createBooking(@RequestBody CreateServiceBookingRequestDto request) {
+    public ResponseEntity<ServiceBookingResponseDto> createBooking(
+            @RequestBody CreateServiceBookingRequestDto request) {
         ServiceBookingResponseDto response = serviceBookingService.createBooking(request);
         return ResponseEntity.ok(response);
     }
@@ -42,6 +46,13 @@ public class ServiceBookingController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/invoice/{bookingId}")
+    public org.springframework.web.servlet.ModelAndView getInvoice(@PathVariable Long bookingId) {
+        org.springframework.web.servlet.ModelAndView modelAndView = new org.springframework.web.servlet.ModelAndView(
+                "invoice");
+        modelAndView.addObject("invoice", serviceBookingService.getInvoice(bookingId));
+        return modelAndView;
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {

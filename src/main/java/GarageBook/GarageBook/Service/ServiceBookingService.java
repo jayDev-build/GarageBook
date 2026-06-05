@@ -9,6 +9,7 @@ import GarageBook.GarageBook.Dto.Request.UpdateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Response.ServiceBookingResponseDto;
 import GarageBook.GarageBook.Dto.Response.ServicePartResponseDto;
 import GarageBook.GarageBook.Models.Garage;
+import GarageBook.GarageBook.Models.Invoice;
 import GarageBook.GarageBook.Models.Part;
 import GarageBook.GarageBook.Models.ServiceBooking;
 import GarageBook.GarageBook.Models.ServicePart;
@@ -192,6 +193,23 @@ public class ServiceBookingService {
         }
 
         serviceBookingRepository.delete(booking);
+    }
+
+    public Invoice getInvoice(Long bookingId) {
+        ServiceBooking booking = serviceBookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Service booking not found with id: " + bookingId));
+
+        return Invoice.builder()
+                .id(booking.getId())
+                .invoiceNumber("INV-" + booking.getId())
+                .totalAmount(booking.getTotalAmount())
+                .createdAt(booking.getBookingTime().toLocalDate())
+                .garage(booking.getGarage())
+                .owner(booking.getVehicle().getOwner())
+                .vehicle(booking.getVehicle())
+                .invoiceItems(booking.getServiceParts())
+                .build();
     }
 
     private ServiceBookingResponseDto mapToResponse(ServiceBooking booking) {
