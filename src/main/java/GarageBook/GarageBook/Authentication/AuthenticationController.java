@@ -26,7 +26,8 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final UserService userService;
 
-    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService, UserService userService) {
+    public AuthenticationController(JwtService jwtService, AuthenticationService authenticationService,
+            UserService userService) {
         this.jwtService = jwtService;
         this.authenticationService = authenticationService;
         this.userService = userService;
@@ -38,7 +39,6 @@ public class AuthenticationController {
         UserResponseDto response = userService.mapToResponse(registeredUser);
         return ResponseEntity.ok(response);
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto,

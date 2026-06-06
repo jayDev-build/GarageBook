@@ -2,6 +2,7 @@ package GarageBook.GarageBook.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 import org.springframework.stereotype.Service;
 import GarageBook.GarageBook.Dto.Request.CreateServiceBookingRequestDto;
 import GarageBook.GarageBook.Dto.Request.CreateServicePartRequestDto;
@@ -17,9 +18,11 @@ import GarageBook.GarageBook.Models.Vehicle;
 import GarageBook.GarageBook.Repository.GarageRepository;
 import GarageBook.GarageBook.Repository.ServiceBookingRepository;
 import GarageBook.GarageBook.Repository.ServicePartRepository;
-
+import GarageBook.GarageBook.Enums.BookingStatus;
 import org.springframework.transaction.annotation.Transactional;
 import GarageBook.GarageBook.Repository.VehicleRepository;
+import GarageBook.GarageBook.WhatsApp.WhatsAppNotificationService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.Authentication;
@@ -33,18 +36,21 @@ public class ServiceBookingService {
     private final GarageRepository garageRepository;
     private final GarageBook.GarageBook.Repository.PartRepository partRepository;
     private final GarageBook.GarageBook.Repository.ServicePartRepository servicePartRepository;
+    private final WhatsAppNotificationService whatsAppNotificationService;
 
     public ServiceBookingService(
             ServiceBookingRepository serviceBookingRepository,
             VehicleRepository vehicleRepository,
             GarageRepository garageRepository,
             GarageBook.GarageBook.Repository.PartRepository partRepository,
-            ServicePartRepository servicePartRepository) {
+            ServicePartRepository servicePartRepository,
+            WhatsAppNotificationService whatsAppNotificationService) {
         this.serviceBookingRepository = serviceBookingRepository;
         this.vehicleRepository = vehicleRepository;
         this.garageRepository = garageRepository;
         this.partRepository = partRepository;
         this.servicePartRepository = servicePartRepository;
+        this.whatsAppNotificationService = whatsAppNotificationService;
     }
 
     private Garage getAuthenticatedUserGarage() {
@@ -77,6 +83,7 @@ public class ServiceBookingService {
                 .build();
 
         ServiceBooking saved = serviceBookingRepository.save(booking);
+        whatsAppNotificationForCreateService(saved);
         return mapToResponse(saved);
     }
 
@@ -178,6 +185,11 @@ public class ServiceBookingService {
 
         booking.setGarage(garage);
         ServiceBooking updated = serviceBookingRepository.save(booking);
+
+        if (request.getBookingStatus().equals(BookingStatus.COMPLETED)) {
+            whatsAppNotificationForCompleteService(updated);
+        }
+
         return mapToResponse(updated);
 
     }
@@ -245,5 +257,41 @@ public class ServiceBookingService {
                 .pricePerUnit(servicePart.getPricePerUnit())
                 .totalPrice(servicePart.getTotalPrice())
                 .build();
+    }
+
+    private void whatsAppNotificationForCompleteService(ServiceBooking service) {
+        String ownerName = service.getVehicle().getOwner().getName();
+        String vehicleNo = service.getVehicle().getVehicleNumber();
+        double totalAmount = service.getTotalAmount();
+        String garageAddress = service.getGarage().getAddress();
+        String garagePhone = service.getGarage().getPhoneNumber();
+        String ownerPhone = service.getVehicle().getOwner().getPhoneNumber();
+
+        String templateName = "service_completed";
+        String languageCode = "en";
+        List<String> bodyValues = new ArrayList<>();
+        bodyValues.add(ownerName);
+        bodyValues.add(vehicleNo);
+        bodyValues.add(String.valueOf(totalAmount));
+        bodyValues.add(garageAddress);
+        bodyValues.add(garagePhone);
+
+        whatsAppNotificationService.sendTemplateNotification(ownerPhone, templateName, languageCode, bodyValues);
+    }
+
+    private void whatsAppNotificationForCreateService(ServiceBooking service) {
+        String ownerName = service.getVehicle().getOwner().getName();
+        String vehicleNo = service.getVehicle().getVehicleNumber();
+        String garageAddress = service.getGarage().getAddress();
+        String ownerPhone = service.getVehicle().getOwner().getPhoneNumber();
+
+        String templateName = "service_creation";
+        String languageCode = "en";
+        List<String> bodyValues = new ArrayList<>();
+        bodyValues.add(ownerName);
+        bodyValues.add(vehicleNo);
+        bodyValues.add(garageAddress);
+
+        whatsAppNotificationService.sendTemplateNotification(ownerPhone, templateName, languageCode, bodyValues);
     }
 }
