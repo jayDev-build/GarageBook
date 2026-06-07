@@ -18,6 +18,7 @@ import GarageBook.GarageBook.Models.Vehicle;
 import GarageBook.GarageBook.Repository.GarageRepository;
 import GarageBook.GarageBook.Repository.ServiceBookingRepository;
 import GarageBook.GarageBook.Repository.ServicePartRepository;
+import GarageBook.GarageBook.Repository.UserRepository;
 import GarageBook.GarageBook.Enums.BookingStatus;
 import org.springframework.transaction.annotation.Transactional;
 import GarageBook.GarageBook.Repository.VehicleRepository;
@@ -25,7 +26,6 @@ import GarageBook.GarageBook.WhatsApp.WhatsAppNotificationService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import GarageBook.GarageBook.Models.User;
 
@@ -37,6 +37,7 @@ public class ServiceBookingService {
     private final GarageBook.GarageBook.Repository.PartRepository partRepository;
     private final GarageBook.GarageBook.Repository.ServicePartRepository servicePartRepository;
     private final WhatsAppNotificationService whatsAppNotificationService;
+    private final UserRepository userRepository;
 
     public ServiceBookingService(
             ServiceBookingRepository serviceBookingRepository,
@@ -44,30 +45,24 @@ public class ServiceBookingService {
             GarageRepository garageRepository,
             GarageBook.GarageBook.Repository.PartRepository partRepository,
             ServicePartRepository servicePartRepository,
-            WhatsAppNotificationService whatsAppNotificationService) {
+            WhatsAppNotificationService whatsAppNotificationService,
+            UserRepository userRepository) {
         this.serviceBookingRepository = serviceBookingRepository;
         this.vehicleRepository = vehicleRepository;
         this.garageRepository = garageRepository;
         this.partRepository = partRepository;
         this.servicePartRepository = servicePartRepository;
         this.whatsAppNotificationService = whatsAppNotificationService;
-    }
-
-    private Garage getAuthenticatedUserGarage() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            User currentUser = (User) authentication.getPrincipal();
-            Garage garage = currentUser.getGarage();
-            if (garage == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
-            }
-            return garage;
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        this.userRepository = userRepository;
     }
 
     public ServiceBookingResponseDto createBooking(CreateServiceBookingRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
+
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Vehicle not found with id: " + request.getVehicleId()));
@@ -88,35 +83,39 @@ public class ServiceBookingService {
     }
 
     public List<ServiceBookingResponseDto> getAllBookings() {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         return serviceBookingRepository.findByGarage(garage).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     public ServiceBookingResponseDto getBookingById(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         ServiceBooking booking = serviceBookingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Service booking not found with id: " + id));
 
-        if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), booking.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Access denied to service booking: " + id));
 
         return mapToResponse(booking);
     }
 
-    @Transactional // 1. Crucial for inventory rollbacks if stock check fails
+    @Transactional
     public ServiceBookingResponseDto updateBooking(Long id, UpdateServiceBookingRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         ServiceBooking booking = serviceBookingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Service booking not found with id: " + id));
 
-        if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), booking.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Access denied to service booking: " + id));
 
         if (request.getServiceType() != null)
             booking.setServiceType(request.getServiceType());
@@ -129,47 +128,32 @@ public class ServiceBookingService {
         if (request.getLabourCharges() != null)
             booking.setLabourCharges(request.getLabourCharges());
 
-        // --- INVENTORY MANAGEMENT LOGIC START ---
         if (request.getServiceParts() != null) {
-
-            // 1. Snapshot old state into a standalone temporary list
-            // This isolates the elements so we don't cause a concurrent modification loop
             List<ServicePart> oldPartsSnapshot = new java.util.ArrayList<>(booking.getServiceParts());
 
-            // 2. Revert Previous State using the snapshot
             for (ServicePart oldServicePart : oldPartsSnapshot) {
                 Part part = oldServicePart.getPart();
-                part.setStockQuantity(part.getStockQuantity() + oldServicePart.getQuantity()); // Restoring stock
+                part.setStockQuantity(part.getStockQuantity() + oldServicePart.getQuantity());
                 partRepository.save(part);
             }
 
-            // 3. Clear the managed collection directly!
-            // Because orphanRemoval = true is active, Hibernate marks these records for
-            // deletion
-            // and manages the internal tracker flawlessly without breaking references.
             booking.getServiceParts().clear();
-
-            // Flush the restored stock updates so step 4 can read fresh numbers
             partRepository.flush();
 
-            // 4. Apply New State: Validate and subtract new quantities
             for (CreateServicePartRequestDto partReq : request.getServiceParts()) {
                 Part part = partRepository.findById(partReq.getPartId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Part not found with id: " + partReq.getPartId()));
 
-                // Stock Check Validation
                 if (part.getStockQuantity() < partReq.getQuantity()) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Insufficient stock for part: " + part.getPartName() + " (Requested: "
                                     + partReq.getQuantity() + ", Available: " + part.getStockQuantity() + ")");
                 }
 
-                // Deduct from inventory
                 part.setStockQuantity(part.getStockQuantity() - partReq.getQuantity());
                 partRepository.save(part);
 
-                // Construct new ServicePart mapping
                 ServicePart servicePart = ServicePart.builder()
                         .part(part)
                         .serviceBooking(booking)
@@ -178,31 +162,28 @@ public class ServiceBookingService {
                         .totalPrice(partReq.getPricePerUnit() * partReq.getQuantity())
                         .build();
 
-                // Add to the managed collection (Hibernate handles the SQL INSERT later)
                 booking.addServicePart(servicePart);
             }
-        } // --- INVENTORY MANAGEMENT LOGIC END ---
+        }
 
-        booking.setGarage(garage);
         ServiceBooking updated = serviceBookingRepository.save(booking);
 
-        if (request.getBookingStatus().equals(BookingStatus.COMPLETED)) {
+        if (request.getBookingStatus() != null && request.getBookingStatus().equals(BookingStatus.COMPLETED)) {
             whatsAppNotificationForCompleteService(updated);
         }
 
         return mapToResponse(updated);
-
     }
 
     public void deleteBooking(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         ServiceBooking booking = serviceBookingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Service booking not found with id: " + id));
 
-        if (booking.getGarage() == null || !booking.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to service booking: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), booking.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Access denied to service booking: " + id));
 
         serviceBookingRepository.delete(booking);
     }
@@ -283,6 +264,7 @@ public class ServiceBookingService {
         String ownerName = service.getVehicle().getOwner().getName();
         String vehicleNo = service.getVehicle().getVehicleNumber();
         String garageAddress = service.getGarage().getAddress();
+        String garageName = service.getGarage().getName();
         String ownerPhone = service.getVehicle().getOwner().getPhoneNumber();
 
         String templateName = "service_creation";
@@ -290,6 +272,7 @@ public class ServiceBookingService {
         List<String> bodyValues = new ArrayList<>();
         bodyValues.add(ownerName);
         bodyValues.add(vehicleNo);
+        bodyValues.add(garageName);
         bodyValues.add(garageAddress);
 
         whatsAppNotificationService.sendTemplateNotification(ownerPhone, templateName, languageCode, bodyValues);

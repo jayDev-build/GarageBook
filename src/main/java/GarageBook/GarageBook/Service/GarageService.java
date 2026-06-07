@@ -24,19 +24,6 @@ public class GarageService {
         this.userRepository = userRepository;
     }
 
-    private Garage getAuthenticatedUserGarage() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            User currentUser = (User) authentication.getPrincipal();
-            Garage garage = currentUser.getGarage();
-            if (garage == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
-            }
-            return garage;
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
-    }
-
     public GarageResponseDto createGarage(CreateGarageRequestDto request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
@@ -61,24 +48,27 @@ public class GarageService {
     }
 
     public List<GarageResponseDto> getAllGarages() {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         return List.of(mapToResponse(garage));
     }
 
     public GarageResponseDto getGarageById(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
-        if (!garage.getGarageId().equals(id)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id);
-        }
-        return mapToResponse(garage);
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id));
+        return mapToResponse(currentUser.getGarage());
     }
 
     public GarageResponseDto updateGarage(Long id, UpdateGarageRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
-        if (!garage.getGarageId().equals(id)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id);
-        }
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id));
 
+        Garage garage = currentUser.getGarage();
         garage.setPhoneNumber(request.getPhoneNumber());
         garage.setEmail(request.getEmail());
 
@@ -87,11 +77,11 @@ public class GarageService {
     }
 
     public void deleteGarage(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
-        if (!garage.getGarageId().equals(id)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id);
-        }
-        garageRepository.delete(garage);
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to garage: " + id));
+        
+        garageRepository.delete(currentUser.getGarage());
     }
 
     private GarageResponseDto mapToResponse(Garage garage) {

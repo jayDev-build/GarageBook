@@ -10,34 +10,27 @@ import GarageBook.GarageBook.Models.Part;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Models.User;
 import GarageBook.GarageBook.Repository.PartRepository;
+import GarageBook.GarageBook.Repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 public class PartService {
     private final PartRepository partRepository;
+    private final UserRepository userRepository;
 
-    public PartService(PartRepository partRepository) {
+    public PartService(PartRepository partRepository, UserRepository userRepository) {
         this.partRepository = partRepository;
-    }
-
-    private Garage getAuthenticatedUserGarage() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            User currentUser = (User) authentication.getPrincipal();
-            Garage garage = currentUser.getGarage();
-            if (garage == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
-            }
-            return garage;
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        this.userRepository = userRepository;
     }
 
     public PartResponseDto createPart(CreatePartRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
 
         Part part = Part.builder()
                 .partName(request.getPartName())
@@ -53,7 +46,11 @@ public class PartService {
     }
 
     public List<PartResponseDto> getAllParts() {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         List<Part> ls = partRepository.findByGarage(garage);
         return ls.stream()
                 .map(this::mapToResponse)
@@ -61,44 +58,40 @@ public class PartService {
     }
 
     public PartResponseDto getPartById(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Part part = partRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + id));
 
-        if (part.getGarage() == null || !part.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), part.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id));
 
         return mapToResponse(part);
     }
 
     public PartResponseDto updatePart(Long id, UpdatePartRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Part part = partRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + id));
 
-        if (part.getGarage() == null || !part.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), part.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id));
 
         part.setPartName(request.getPartName());
         part.setPartSize(request.getPartSize());
         part.setPartNumber(request.getPartNumber());
         part.setPricePerUnit(request.getPricePerUnit());
-        part.setGarage(garage);
 
         Part updated = partRepository.save(part);
         return mapToResponse(updated);
     }
 
     public void deletePart(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Part part = partRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Part not found with id: " + id));
 
-        if (part.getGarage() == null || !part.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), part.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id));
 
         partRepository.delete(part);
     }

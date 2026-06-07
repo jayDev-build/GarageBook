@@ -10,43 +10,27 @@ import GarageBook.GarageBook.Models.Owner;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Models.User;
 import GarageBook.GarageBook.Repository.OwnerRepository;
+import GarageBook.GarageBook.Repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 public class OwnerService {
     private final OwnerRepository ownerRepository;
+    private final UserRepository userRepository;
 
-    public OwnerService(OwnerRepository ownerRepository) {
+    public OwnerService(OwnerRepository ownerRepository, UserRepository userRepository) {
         this.ownerRepository = ownerRepository;
-    }
-
-    public Garage getAuthenticatedUserGarage() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            User currentUser = (User) authentication.getPrincipal();
-            Garage garage = currentUser.getGarage();
-            if (garage == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
-            }
-            return garage;
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
-    }
-
-    private void checkOwnerAccess(Owner owner, Garage garage) {
-        boolean isOwnerGarage = owner.getGarage() != null && owner.getGarage().getGarageId().equals(garage.getGarageId());
-        boolean hasVehicleInGarage = owner.getVehicles() != null && owner.getVehicles().stream()
-                .anyMatch(v -> v.getGarage() != null && v.getGarage().getGarageId().equals(garage.getGarageId()));
-        if (!isOwnerGarage && !hasVehicleInGarage) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to owner: " + owner.getId());
-        }
+        this.userRepository = userRepository;
     }
 
     public OwnerResponseDto createOwner(CreateOwnerRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         Owner owner = Owner.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -59,25 +43,34 @@ public class OwnerService {
     }
 
     public List<OwnerResponseDto> getAllOwners() {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         return ownerRepository.findByGarage(garage).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     public OwnerResponseDto getOwnerById(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Owner owner = ownerRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found with id: " + id));
-        checkOwnerAccess(owner, garage);
+        
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), owner.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to owner: " + id));
+
         return mapToResponse(owner);
     }
 
     public OwnerResponseDto updateOwner(Long id, UpdateOwnerRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Owner owner = ownerRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found with id: " + id));
-        checkOwnerAccess(owner, garage);
+
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), owner.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to owner: " + id));
 
         owner.setName(request.getName());
         owner.setEmail(request.getEmail());
@@ -88,13 +81,15 @@ public class OwnerService {
     }
 
     public void deleteOwner(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Owner owner = ownerRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found with id: " + id));
-        checkOwnerAccess(owner, garage);
+
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), owner.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to owner: " + id));
+
         ownerRepository.delete(owner);
     }
-
 
     private OwnerResponseDto mapToResponse(Owner owner) {
         return OwnerResponseDto.builder()

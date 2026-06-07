@@ -9,35 +9,28 @@ import GarageBook.GarageBook.Dto.Response.MechanicResponseDto;
 import GarageBook.GarageBook.Models.Garage;
 import GarageBook.GarageBook.Models.Mechanic;
 import GarageBook.GarageBook.Repository.MechanicRepository;
+import GarageBook.GarageBook.Repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import GarageBook.GarageBook.Models.User;
 
 @Service
 public class MechanicService {
     private final MechanicRepository mechanicRepository;
+    private final UserRepository userRepository;
 
-    public MechanicService(MechanicRepository mechanicRepository) {
+    public MechanicService(MechanicRepository mechanicRepository, UserRepository userRepository) {
         this.mechanicRepository = mechanicRepository;
-    }
-
-    private Garage getAuthenticatedUserGarage() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            User currentUser = (User) authentication.getPrincipal();
-            Garage garage = currentUser.getGarage();
-            if (garage == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
-            }
-            return garage;
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        this.userRepository = userRepository;
     }
 
     public MechanicResponseDto createMechanic(CreateMechanicRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
 
         Mechanic mechanic = Mechanic.builder()
                 .name(request.getName())
@@ -52,34 +45,36 @@ public class MechanicService {
     }
 
     public List<MechanicResponseDto> getAllMechanics() {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Garage garage = currentUser.getGarage();
+        if (garage == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not associated with any garage");
+        }
         return mechanicRepository.findByGarage(garage).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     public MechanicResponseDto getMechanicById(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Mechanic mechanic = mechanicRepository.findById(id)
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
-        if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), mechanic.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id));
 
         return mapToResponse(mechanic);
     }
 
     public MechanicResponseDto updateMechanic(Long id, UpdateMechanicRequestDto request) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Mechanic mechanic = mechanicRepository.findById(id)
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
-        if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), mechanic.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id));
 
         mechanic.setPhoneNumber(request.getPhoneNumber());
         mechanic.setAddress(request.getAddress());
@@ -89,14 +84,13 @@ public class MechanicService {
     }
 
     public void deleteMechanic(Long id) {
-        Garage garage = getAuthenticatedUserGarage();
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Mechanic mechanic = mechanicRepository.findById(id)
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mechanic not found with id: " + id));
 
-        if (mechanic.getGarage() == null || !mechanic.getGarage().getGarageId().equals(garage.getGarageId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id);
-        }
+        userRepository.findByUserIdAndGarageId(currentUser.getId(), mechanic.getGarage().getGarageId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to mechanic: " + id));
 
         mechanicRepository.delete(mechanic);
     }
