@@ -17,7 +17,6 @@ public interface OwnerRepository extends JpaRepository<Owner, Long> {
 
     Optional<Owner> findByPhoneNumber(String phoneNumber);
 
-    @Query("SELECT DISTINCT o FROM Owner o JOIN o.vehicles v WHERE v.garage = :garage")
+    @Query("SELECT DISTINCT o FROM Owner o LEFT JOIN o.vehicles v WHERE o.garage = :garage OR v.garage = :garage")
     List<Owner> findByGarage(@Param("garage") Garage garage);
-    
 }

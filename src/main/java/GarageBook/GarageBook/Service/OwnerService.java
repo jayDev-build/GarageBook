@@ -23,7 +23,7 @@ public class OwnerService {
         this.ownerRepository = ownerRepository;
     }
 
-    private Garage getAuthenticatedUserGarage() {
+    public Garage getAuthenticatedUserGarage() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof User) {
             User currentUser = (User) authentication.getPrincipal();
@@ -37,18 +37,21 @@ public class OwnerService {
     }
 
     private void checkOwnerAccess(Owner owner, Garage garage) {
+        boolean isOwnerGarage = owner.getGarage() != null && owner.getGarage().getGarageId().equals(garage.getGarageId());
         boolean hasVehicleInGarage = owner.getVehicles() != null && owner.getVehicles().stream()
                 .anyMatch(v -> v.getGarage() != null && v.getGarage().getGarageId().equals(garage.getGarageId()));
-        if (!hasVehicleInGarage) {
+        if (!isOwnerGarage && !hasVehicleInGarage) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to owner: " + owner.getId());
         }
     }
 
     public OwnerResponseDto createOwner(CreateOwnerRequestDto request) {
+        Garage garage = getAuthenticatedUserGarage();
         Owner owner = Owner.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
+                .garage(garage)
                 .build();
 
         Owner saved = ownerRepository.save(owner);
