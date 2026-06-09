@@ -76,9 +76,8 @@ public class PartService {
         userRepository.findByUserIdAndGarageId(currentUser.getId(), part.getGarage().getGarageId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to part: " + id));
 
-        part.setPartName(request.getPartName());
         part.setPartSize(request.getPartSize());
-        part.setPartNumber(request.getPartNumber());
+        part.setStockQuantity(request.getStockQuantity());
         part.setPricePerUnit(request.getPricePerUnit());
 
         Part updated = partRepository.save(part);

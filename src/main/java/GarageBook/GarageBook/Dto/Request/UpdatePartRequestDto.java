@@ -15,5 +15,6 @@ public class UpdatePartRequestDto {
     private String partName;
     private String partSize;
     private String partNumber;
+    private Integer stockQuantity;
     private Long pricePerUnit;
 }
