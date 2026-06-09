@@ -104,8 +104,8 @@ CREATE DATABASE garagebook;
 Configure your database username and password inside the `src/main/resources/application.properties` if they differ from the defaults:
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/garagebook
-spring.datasource.username=root
-spring.datasource.password=Yashit@2004
+spring.datasource.username=username
+spring.datasource.password=password
 ```
 
 ### 🏃 3. Run the Application
