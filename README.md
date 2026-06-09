@@ -452,5 +452,3 @@ Invoices are served as print-ready HTML layouts dynamically populated via **Thym
 
 ---
 
-## 📝 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
