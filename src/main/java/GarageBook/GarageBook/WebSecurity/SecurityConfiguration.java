@@ -12,11 +12,17 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+
+        @Value("${frontend.url}")
+        private String frontendUrl;
+
         private final AuthenticationProvider authenticationProvider;
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -47,6 +53,7 @@ public class SecurityConfiguration {
                 CorsConfiguration configuration = new CorsConfiguration();
 
                 configuration.setAllowedOriginPatterns(List.of(
+                                frontendUrl,
                                 "http://localhost:5173",
                                 "http://127.0.0.1:5173",
                                 "http://*:5173"));
