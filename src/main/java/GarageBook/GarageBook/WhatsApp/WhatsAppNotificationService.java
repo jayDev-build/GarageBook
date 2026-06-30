@@ -55,4 +55,41 @@ public class WhatsAppNotificationService {
             throw new RuntimeException("Failed to send WhatsApp notification", e);
         }
     }
+
+    public void sendTextMessage(String toPhoneNumber, String messageContent) {
+        String cleanTo = toPhoneNumber.replaceAll("[^0-9]", "");
+        if (cleanTo.length() == 10) {
+            cleanTo = "91" + cleanTo;
+        }
+
+        java.util.Map<String, Object> textObject = java.util.Map.of(
+            "preview_url", false,
+            "body", messageContent
+        );
+        java.util.Map<String, Object> payload = java.util.Map.of(
+            "messaging_product", "whatsapp",
+            "recipient_type", "individual",
+            "to", cleanTo,
+            "type", "text",
+            "text", textObject
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessToken);
+
+        String url = "https://graph.facebook.com/v25.0/" + phoneNumberId + "/messages";
+        HttpEntity<java.util.Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+        try {
+            String response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    String.class).getBody();
+            System.out.println("WhatsApp Text Message Sent Successfully! Response: " + response);
+        } catch (Exception e) {
+            System.err.println("Error sending WhatsApp text: " + e.getMessage());
+        }
+    }
 }
