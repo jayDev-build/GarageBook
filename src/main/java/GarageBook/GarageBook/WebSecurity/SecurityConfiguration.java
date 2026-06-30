@@ -38,7 +38,24 @@ public class SecurityConfiguration {
                 http.csrf(csrf -> csrf.disable())
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/auth/**", "/api/webhook/whatsapp").permitAll()
+                                                .requestMatchers(
+                                                    "/auth/**",
+                                                    "/api/webhook/whatsapp",
+                                                    "/",
+                                                    "/index.html",
+                                                    "/assets/**",
+                                                    "/favicon.svg",
+                                                    "/icons.svg",
+                                                    "/dashboard",
+                                                    "/services",
+                                                    "/inventory",
+                                                    "/owner-vehicle-dashboard",
+                                                    "/owners",
+                                                    "/vehicles",
+                                                    "/mechanics",
+                                                    "/garage-settings",
+                                                    "/live-inbox"
+                                                ).permitAll()
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
