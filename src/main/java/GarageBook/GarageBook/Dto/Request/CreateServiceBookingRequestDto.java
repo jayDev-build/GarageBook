@@ -22,5 +22,6 @@ public class CreateServiceBookingRequestDto {
     private BookingStatus bookingStatus;
     private Long totalAmount;
     private Long labourCharges;
+    private String description;
     private List<CreateServicePartRequestDto> serviceParts;
 }

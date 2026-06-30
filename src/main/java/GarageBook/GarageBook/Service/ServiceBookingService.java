@@ -83,6 +83,7 @@ public class ServiceBookingService {
                 .vehicle(vehicle)
                 .serviceType(request.getServiceType())
                 .bookingTime(request.getBookingTime())
+                .description(request.getDescription())
                 .bookingStatus(request.getBookingStatus())
                 .totalAmount(request.getTotalAmount())
                 .labourCharges(request.getLabourCharges())
@@ -169,6 +170,8 @@ public class ServiceBookingService {
             booking.setTotalAmount(request.getTotalAmount());
         if (request.getLabourCharges() != null)
             booking.setLabourCharges(request.getLabourCharges());
+        if (request.getDescription() != null)
+            booking.setDescription(request.getDescription());
 
         if (request.getServiceParts() != null) {
             List<ServicePart> oldPartsSnapshot = new java.util.ArrayList<>(booking.getServiceParts());
@@ -286,6 +289,7 @@ public class ServiceBookingService {
                 .labourCharges(booking.getLabourCharges())
                 .garageId(booking.getGarage() != null ? booking.getGarage().getGarageId() : null)
                 .garageName(booking.getGarage() != null ? booking.getGarage().getName() : null)
+                .description(booking.getDescription())
                 .serviceParts(partsList)
                 .build();
     }

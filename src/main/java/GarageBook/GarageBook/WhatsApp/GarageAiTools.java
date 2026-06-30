@@ -72,13 +72,14 @@ public class GarageAiTools {
         }
     }
 
-    @Tool(description = "Book a new appointment at a specific garage for a customer on a given date-time (format: YYYY-MM-DDTHH:MM), specifying a serviceType (e.g. GENERAL_SERVICE, WASH, REPAIR, OIL_CHANGE) and symptoms.")
+    @Tool(description = "Book a new appointment at a specific garage for a customer on a given date-time (format: YYYY-MM-DDTHH:MM), specifying a serviceType (e.g. GENERAL_SERVICE, WASH, REPAIR, OIL_CHANGE), their vehicle registration number (e.g. MH12AB1234), and symptoms.")
     public String bookAppointment(
             Long garageId, 
             String customerPhoneNumber, 
             String customerName, 
             String appointmentTime, 
             String serviceType,
+            String vehicleNumber,
             String symptoms) {
         try {
             Garage garage = garageRepository.findById(garageId)
@@ -119,24 +120,26 @@ public class GarageAiTools {
                 });
 
             Vehicle vehicle;
-            List<Vehicle> ownerVehicles = owner.getVehicles();
-            if (ownerVehicles != null && !ownerVehicles.isEmpty()) {
-                vehicle = ownerVehicles.get(0);
-            } else {
+            String cleanedVehicleNumber = (vehicleNumber != null ? vehicleNumber.toUpperCase().replaceAll("\\s+", "") : "").trim();
+            if (cleanedVehicleNumber.isEmpty()) {
                 String cleanPhone = customerPhoneNumber.replaceAll("[^0-9]", "");
-                String tempPlate = "WA-" + (cleanPhone.length() > 10 ? cleanPhone.substring(cleanPhone.length() - 10) : cleanPhone);
-                if (tempPlate.length() > 20) {
-                    tempPlate = tempPlate.substring(0, 20);
-                }
-
-                Vehicle newVehicle = Vehicle.builder()
-                    .owner(owner)
-                    .vehicleNumber(tempPlate)
-                    .vehicleType(VehicleType.CAR)
-                    .garage(garage)
-                    .build();
-                vehicle = vehicleRepository.save(newVehicle);
+                cleanedVehicleNumber = "WA-" + (cleanPhone.length() > 10 ? cleanPhone.substring(cleanPhone.length() - 10) : cleanPhone);
             }
+            if (cleanedVehicleNumber.length() > 20) {
+                cleanedVehicleNumber = cleanedVehicleNumber.substring(0, 20);
+            }
+
+            final String targetPlate = cleanedVehicleNumber;
+            vehicle = vehicleRepository.findByVehicleNumber(targetPlate)
+                .orElseGet(() -> {
+                    Vehicle newVehicle = Vehicle.builder()
+                        .owner(owner)
+                        .vehicleNumber(targetPlate)
+                        .vehicleType(VehicleType.CAR)
+                        .garage(garage)
+                        .build();
+                    return vehicleRepository.save(newVehicle);
+                });
 
             // Map serviceType parameter to ServiceType enum
             ServiceType sType = ServiceType.GENERAL_SERVICE;
@@ -153,6 +156,7 @@ public class GarageAiTools {
                 .vehicle(vehicle)
                 .serviceType(sType)
                 .bookingTime(appTime)
+                .description(symptoms)
                 .bookingStatus(BookingStatus.CREATED)
                 .totalAmount(0L)
                 .labourCharges(0L)

@@ -136,7 +136,8 @@ public class GarageAiService {
                 "Before booking an appointment using the 'bookAppointment' tool, you MUST ask the customer for and confirm the following required properties:\n" +
                 "1. Preferred Date & Time (in YYYY-MM-DDTHH:MM format)\n" +
                 "2. Service Type: Choose exactly one from: GENERAL_SERVICE, WASH, REPAIR, or OIL_CHANGE\n" +
-                "3. Symptoms: Description of what is wrong with the vehicle.\n" +
+                "3. Vehicle Registration Number (License Plate, e.g. MH12AB1234). If the user wants to service a new vehicle, ask for this number so we can register it automatically.\n" +
+                "4. Symptoms: Description of what is wrong with the vehicle.\n" +
                 "Do not invoke the tool until you have gathered these parameters.",
                 garage.getName(), session.getCustomerName(), session.getCustomerPhoneNumber(), garage.getGarageId()
             );

@@ -26,5 +26,6 @@ public class ServiceBookingResponseDto {
     private Long labourCharges;
     private Long garageId;
     private String garageName;
+    private String description;
     private List<ServicePartResponseDto> serviceParts;
 }

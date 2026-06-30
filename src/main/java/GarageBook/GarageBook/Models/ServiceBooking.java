@@ -38,6 +38,9 @@ public class ServiceBooking {
 
     private LocalDateTime bookingTime;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private BookingStatus bookingStatus;
