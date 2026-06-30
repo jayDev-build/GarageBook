@@ -148,9 +148,19 @@ public class GarageAiService {
                 }
             }
 
-            String aiResponse = chatClient.prompt(new Prompt(aiMessages))
-                .call()
-                .content();
+            String aiResponse;
+            try {
+                aiResponse = chatClient.prompt(new Prompt(aiMessages))
+                    .call()
+                    .content();
+            } catch (Exception e) {
+                System.err.println("Gemini AI API Call failed: " + e.getMessage());
+                if (e.getMessage() != null && (e.getMessage().contains("quota") || e.getMessage().contains("429"))) {
+                    aiResponse = "I'm experiencing high traffic right now. Please try again in 30 seconds, or reply to reach our team.";
+                } else {
+                    aiResponse = "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.";
+                }
+            }
 
             if (aiResponse == null || aiResponse.trim().isEmpty()) {
                 aiResponse = "I'm sorry, I couldn't process that. Please contact support.";
