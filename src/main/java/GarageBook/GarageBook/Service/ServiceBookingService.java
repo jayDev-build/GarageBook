@@ -29,6 +29,12 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import GarageBook.GarageBook.Models.User;
 
+import GarageBook.GarageBook.Models.Customer;
+import GarageBook.GarageBook.Models.Appointment;
+import GarageBook.GarageBook.Models.Owner;
+import GarageBook.GarageBook.Repository.CustomerRepository;
+import GarageBook.GarageBook.Repository.AppointmentRepository;
+
 @Service
 public class ServiceBookingService {
     private final ServiceBookingRepository serviceBookingRepository;
@@ -38,6 +44,8 @@ public class ServiceBookingService {
     private final GarageBook.GarageBook.Repository.ServicePartRepository servicePartRepository;
     private final WhatsAppNotificationService whatsAppNotificationService;
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
+    private final AppointmentRepository appointmentRepository;
 
     public ServiceBookingService(
             ServiceBookingRepository serviceBookingRepository,
@@ -46,7 +54,9 @@ public class ServiceBookingService {
             GarageBook.GarageBook.Repository.PartRepository partRepository,
             ServicePartRepository servicePartRepository,
             WhatsAppNotificationService whatsAppNotificationService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            CustomerRepository customerRepository,
+            AppointmentRepository appointmentRepository) {
         this.serviceBookingRepository = serviceBookingRepository;
         this.vehicleRepository = vehicleRepository;
         this.garageRepository = garageRepository;
@@ -54,6 +64,8 @@ public class ServiceBookingService {
         this.servicePartRepository = servicePartRepository;
         this.whatsAppNotificationService = whatsAppNotificationService;
         this.userRepository = userRepository;
+        this.customerRepository = customerRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     public ServiceBookingResponseDto createBooking(CreateServiceBookingRequestDto request) {
@@ -79,6 +91,36 @@ public class ServiceBookingService {
 
         ServiceBooking saved = serviceBookingRepository.save(booking);
         whatsAppNotificationForCreateService(saved);
+
+        // Auto-reserve the slot by creating an Appointment
+        try {
+            Owner owner = vehicle.getOwner();
+            if (owner != null && owner.getPhoneNumber() != null) {
+                Customer customer = customerRepository.findByPhoneNumberAndGarageGarageId(
+                    owner.getPhoneNumber(), garage.getGarageId()
+                ).orElseGet(() -> {
+                    Customer newCust = Customer.builder()
+                        .name(owner.getName())
+                        .phoneNumber(owner.getPhoneNumber())
+                        .email(owner.getEmail())
+                        .garage(garage)
+                        .build();
+                    return customerRepository.save(newCust);
+                });
+
+                Appointment appointment = Appointment.builder()
+                    .customer(customer)
+                    .appointmentTime(saved.getBookingTime())
+                    .status("CONFIRMED")
+                    .symptoms("Scheduled service booking for: " + (saved.getServiceType() != null ? saved.getServiceType().toString() : "Repair"))
+                    .garage(garage)
+                    .build();
+                appointmentRepository.save(appointment);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to auto-reserve slot for service booking: " + e.getMessage());
+        }
+
         return mapToResponse(saved);
     }
 
@@ -170,9 +212,30 @@ public class ServiceBookingService {
 
         if (request.getBookingStatus() != null && request.getBookingStatus().equals(BookingStatus.COMPLETED)) {
             whatsAppNotificationForCompleteService(updated);
+            releaseAppointmentSlot(updated);
         }
 
         return mapToResponse(updated);
+    }
+
+    private void releaseAppointmentSlot(ServiceBooking booking) {
+        try {
+            if (booking.getVehicle() != null && booking.getVehicle().getOwner() != null) {
+                String phone = booking.getVehicle().getOwner().getPhoneNumber();
+                customerRepository.findByPhoneNumberAndGarageGarageId(phone, booking.getGarage().getGarageId())
+                    .ifPresent(customer -> {
+                        List<Appointment> appointments = appointmentRepository.findByGarageGarageIdAndAppointmentTimeAndCustomer(
+                            booking.getGarage().getGarageId(), booking.getBookingTime(), customer
+                        );
+                        for (Appointment app : appointments) {
+                            app.setStatus("COMPLETED");
+                            appointmentRepository.save(app);
+                        }
+                    });
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to release appointment slot: " + e.getMessage());
+        }
     }
 
     public void deleteBooking(Long id) {
