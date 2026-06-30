@@ -154,7 +154,7 @@ public class GarageAiService {
                     .call()
                     .content();
             } catch (Exception e) {
-                System.err.println("Gemini AI API Call failed: " + e.getMessage());
+                System.err.println("AI API Call failed: " + e.getMessage());
                 if (e.getMessage() != null && (e.getMessage().contains("quota") || e.getMessage().contains("429"))) {
                     aiResponse = "I'm experiencing high traffic right now. Please try again in 30 seconds, or reply to reach our team.";
                 } else {
